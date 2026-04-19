@@ -1,0 +1,5 @@
+- git status - = melihat file yang baru diubah (ditandai dengan main warna merah)
+- git add . - = marking file yang berubah
+- git commit -m "label apa yang berubah" - = catatan untuk fitur 
+atau apa yang dikerjakan atau selesai
+- git push origin main - = buat push ke server github
