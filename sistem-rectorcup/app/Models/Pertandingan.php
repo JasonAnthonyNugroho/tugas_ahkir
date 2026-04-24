@@ -15,7 +15,7 @@ class Pertandingan extends Model
         'waktu_tanding',
         'lokasi',
         'status',
-        'selesai_pada'
+        'selesai_pada',
     ];
 
     protected $casts = [
@@ -33,4 +33,3 @@ class Pertandingan extends Model
         return $this->belongsTo(Team::class, 'team_b_id');
     }
 }
-

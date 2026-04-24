@@ -165,8 +165,10 @@
 <body>
     <div class="container-fluid">
         <div class="row bg-primary py-2 shadow-sm">
-            <div class="col d-flex justify-content-between align-items-center">
+            <div class="col d-flex align-items-center">
                 <h4 class="text-white mb-0 ml-3 font-weight-bold">RECTOR CUP</h4>
+            </div>
+            <div class="col-auto pr-4">
                 <div class="dropdown">
                     <button class="btn btn-primary dropdown-toggle border-white" type="button" data-toggle="dropdown">
                         <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? "Guest" }}
@@ -178,7 +180,7 @@
                             <form action="{{ route('logout') }}" method="POST">@csrf <button
                                     class="dropdown-item text-danger">Logout</button></form>
                         @else
-                            <a class="dropdown-item" href="/login">Login Panitia</a>
+                            <a class="dropdown-item" href="{{ route('login') }}">Login Panitia</a>
                         @endauth
                     </div>
                 </div>

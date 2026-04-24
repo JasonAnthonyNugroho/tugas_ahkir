@@ -8,25 +8,39 @@ use Illuminate\Http\Request;
 
 class PertandinganController extends Controller
 {
-    // // Tampilan Dashboard untuk Umum (Guest)
     public function index()
     {
-        // Mengambil semua pertandingan beserta data timnya
-        $pertandingans = Pertandingan::with(['teamA', 'teamB'])->get();
+        // Menampilkan pertandingan yang sedang LIVE atau Terjadwal
+        $pertandingans = Pertandingan::with(['teamA', 'teamB'])
+            ->whereIn('status', ['scheduled', 'live'])
+            ->orderBy('waktu_tanding', 'asc')
+            ->get();
 
         return view('dashboard', compact('pertandingans'));
     }
 
-    // Tampilan Dashboard untuk Panitia (Setelah Login)
     public function adminDashboard()
     {
-        $pertandingans = Pertandingan::all();
-        $teams = Team::orderBy('name', 'asc')->get(); // List tim urut abjad untuk input
+        $teams = Team::orderBy('name', 'asc')->get();
+        $pertandingans = Pertandingan::with(['teamA', 'teamB'])
+            ->orderBy('waktu_tanding', 'desc')
+            ->get();
 
-        return view('admin.dashboard', compact('pertandingans', 'teams'));
+        return view('admin.dashboard', compact('teams', 'pertandingans'));
     }
 
-    // Fungsi menyimpan jadwal baru
+    public function history()
+    {
+        $history = Pertandingan::where('status', 'finished')
+            ->with(['teamA', 'teamB'])
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->waktu_tanding->format('Y');
+            });
+
+        return view('history', compact('history'));
+    }
+
     public function store(Request $request)
     {
         Pertandingan::create([
@@ -37,29 +51,17 @@ class PertandinganController extends Controller
             'status' => 'scheduled',
         ]);
 
-        return back()->with('success', 'Jadwal berhasil ditambahkan!');
+        return redirect()->route('admin.index')->with('success', 'Jadwal berhasil ditambahkan!');
     }
 
-    // Fungsi Update Skor Live
     public function updateScore(Request $request, Pertandingan $pertandingan)
     {
         $pertandingan->update([
             'score_a' => $request->score_a,
             'score_b' => $request->score_b,
-            'status' => $request->status, // Bisa diubah ke 'live' atau 'finished'
+            'status' => $request->status,
         ]);
 
         return response()->json(['message' => 'Skor diperbarui!']);
-    }
-    public function history()
-    {
-        $history = Pertandingan::where('status', 'finished')
-            ->with(['teamA', 'teamB'])
-            ->get()
-            ->groupBy(function ($date) {
-                return \Carbon\Carbon::parse($date->waktu_tanding)->format('Y');
-            });
-
-        return view('history', compact('history'));
     }
 }

@@ -17,7 +17,7 @@ class LoginController extends Controller
     {
         // Validasi input
         $credentials = $request->validate([
-            'name' => ['required'], // Menggunakan field 'name' dari tabel users
+            'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
@@ -37,6 +37,7 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 }

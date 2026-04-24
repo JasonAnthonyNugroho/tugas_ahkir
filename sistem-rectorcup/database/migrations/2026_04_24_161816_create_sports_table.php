@@ -10,10 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('teams', function (Blueprint $table) {
+        Schema::create('sports', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Contoh: "Sistem Informasi A"
-            $table->string('prodi'); // Contoh: "Sistem Informasi"
+            $table->string('nama_sport');
+            $table->string('icon')->nullable(); // Opsional untuk tampilan UI
             $table->timestamps();
         });
     }
@@ -23,9 +23,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('teams');
-        Schema::table('teams', function (Blueprint $table) {
-            $table->foreignId('sport_id')->constrained('sports')->onDelete('cascade');
-        });
+        Schema::dropIfExists('sports');
     }
 };
