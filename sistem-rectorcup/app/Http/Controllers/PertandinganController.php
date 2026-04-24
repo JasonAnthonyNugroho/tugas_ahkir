@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Pertandingan;
 use App\Models\Team;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+
 class PertandinganController extends Controller
 {
-    //// Tampilan Dashboard untuk Umum (Guest)
+    // // Tampilan Dashboard untuk Umum (Guest)
     public function index()
     {
         // Mengambil semua pertandingan beserta data timnya
@@ -35,7 +34,7 @@ class PertandinganController extends Controller
             'team_b_id' => $request->team_b,
             'waktu_tanding' => $request->waktu,
             'lokasi' => $request->lokasi,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         return back()->with('success', 'Jadwal berhasil ditambahkan!');
@@ -47,9 +46,20 @@ class PertandinganController extends Controller
         $pertandingan->update([
             'score_a' => $request->score_a,
             'score_b' => $request->score_b,
-            'status' => $request->status // Bisa diubah ke 'live' atau 'finished'
+            'status' => $request->status, // Bisa diubah ke 'live' atau 'finished'
         ]);
 
         return response()->json(['message' => 'Skor diperbarui!']);
+    }
+    public function history()
+    {
+        $history = Pertandingan::where('status', 'finished')
+            ->with(['teamA', 'teamB'])
+            ->get()
+            ->groupBy(function ($date) {
+                return \Carbon\Carbon::parse($date->waktu_tanding)->format('Y');
+            });
+
+        return view('history', compact('history'));
     }
 }

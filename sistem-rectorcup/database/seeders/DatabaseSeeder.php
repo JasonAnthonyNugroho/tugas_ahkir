@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Team;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -14,14 +15,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Membuat Akun Panitia Rector Cup
-        \App\Models\User::factory()->create([
+        User::factory()->create([
             'name' => 'Panitia Rector Cup',
             'email' => 'admin@ukdw.ac.id',
             'password' => bcrypt('admin#1234'), // Password sesuai request Kamu
         ]);
 
         // Contoh Data Tim (Prodi)
-        \App\Models\Team::create(['name' => 'Sistem Informasi A', 'prodi' => 'Sistem Informasi']);
-        \App\Models\Team::create(['name' => 'Manajemen B', 'prodi' => 'Manajemen']);
+        Team::create(['name' => 'Sistem Informasi A', 'prodi' => 'Sistem Informasi']);
+        Team::create(['name' => 'Manajemen B', 'prodi' => 'Manajemen']);
     }
 }

@@ -1,7 +1,16 @@
 @extends('layouts.app')
 @section('title', 'Live Tournament')
 @section('content')
-
+@if(session('success'))
+    <div class="alert alert-success border-0 shadow-sm mb-4">
+        <i class="bi bi-check-circle-fill mr-2"></i> {{ session('success') }}
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger border-0 shadow-sm mb-4">
+        <i class="bi bi-exclamation-triangle-fill mr-2"></i> {{ session('error') }}
+    </div>
+@endif
 @if($pertandingans->isEmpty())
     <div class="text-center py-5">
         <h2 class="display-4 font-weight-bold mt-5">RECTOR CUP belum dimulai</h2>

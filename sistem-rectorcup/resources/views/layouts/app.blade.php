@@ -8,21 +8,138 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>Rector Cup - @yield('title')</title>
     <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
         .sidebar {
             min-height: 100vh;
-            background: #f8f9fa;
-            border-right: 1px solid #dee2e6;
+            background: #1e1e1e;
+            border-right: 1px solid #333;
+        }
+
+        .nav-link {
+            color: #b0b0b0;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        .card-header {
+            background-color: #252525 !important;
+            border-bottom: 1px solid #333;
+            color: #fff;
+        }
+
+        .form-control {
+            background-color: #252525;
+            border: 1px solid #444;
+            color: #fff;
+        }
+
+        .form-control:focus {
+            background-color: #2a2a2a;
+            border-color: #007bff;
+            color: #fff;
+        }
+
+        .text-muted {
+            color: #a0a0a0 !important;
+        }
+
+        .table {
+            color: #e0e0e0;
+        }
+
+        .table thead th {
+            border-bottom: 2px solid #333;
+            background-color: #252525;
+        }
+
+        .table td {
+            border-top: 1px solid #333;
+        }
+
+        .badge-primary {
+            background-color: #007bff;
+        }
+
+        .bg-primary {
+            background-color: #1e1e1e !important;
+            border-bottom: 1px solid #333;
+        }
+
+        .btn-primary {
+            background-color: #333;
+            border-color: #444;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: #444;
+            border-color: #555;
+            color: #fff;
+        }
+
+        .nav-link {
+            color: #b0b0b0;
+            border-radius: 6px;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            background-color: #ffffff10;
         }
 
         .nav-link.active {
-            font-weight: bold;
-            background-color: #007bff20;
+            color: #fff;
+            background-color: #10b981;
+        }
+
+        hr {
+            border-top: 1px solid #333;
+        }
+
+        .dropdown-menu {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+        }
+
+        .dropdown-item {
+            color: #e0e0e0;
+        }
+
+        .dropdown-item:hover {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .dropdown-toggle::after {
+            color: #fff;
+        }
+
+        .btn-outline-white {
+            color: #fff;
+            border-color: #fff;
+        }
+
+        .btn-outline-white:hover {
+            background-color: #fff;
+            color: #1e1e1e;
+        }
+
+        .dropdown-divider {
+            border-top: 1px solid #333;
         }
 
         .live-indicator {
             width: 10px;
             height: 10px;
-            background: red;
+            background: #ff4d4d;
             border-radius: 50%;
             display: inline-block;
             animation: blink 1s infinite;
@@ -42,6 +159,7 @@
             }
         }
     </style>
+
 </head>
 
 <body>
@@ -72,6 +190,8 @@
                 <div class="nav flex-column nav-pills p-3">
                     <a class="nav-link {{ request()->is('/') ? 'active' : '' }}" href="/"><i
                             class="bi bi-house-door mr-2"></i> Dashboard</a>
+                    <a class="nav-link {{ request()->is('history') ? 'active' : '' }}" href="{{ route('history') }}"><i
+                            class="bi bi-clock-history mr-2"></i> History</a>
                     @auth
                         <a class="nav-link {{ request()->is('admin*') ? 'active' : '' }}" href="/admin"><i
                                 class="bi bi-gear mr-2"></i> Kelola Jadwal</a>
