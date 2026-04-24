@@ -13,11 +13,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Membuat Akun Panitia Rector Cup
+        \App\Models\User::factory()->create([
+            'name' => 'Panitia Rector Cup',
+            'email' => 'admin@ukdw.ac.id',
+            'password' => bcrypt('admin#1234'), // Password sesuai request Kamu
         ]);
+
+        // Contoh Data Tim (Prodi)
+        \App\Models\Team::create(['name' => 'Sistem Informasi A', 'prodi' => 'Sistem Informasi']);
+        \App\Models\Team::create(['name' => 'Manajemen B', 'prodi' => 'Manajemen']);
     }
 }
