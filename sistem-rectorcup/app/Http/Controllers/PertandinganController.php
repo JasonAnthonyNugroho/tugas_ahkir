@@ -17,19 +17,24 @@ class PertandinganController extends Controller
         // Auto-update status scheduled ke live jika waktu sudah terlewati
         Pertandingan::autoUpdateLiveStatus();
 
-        // Menampilkan pertandingan yang sedang LIVE atau Terjadwal
-        $pertandingans = Pertandingan::with(['teamA', 'teamB', 'sport'])
+        $selectedSport = request('sport_id');
+
+        // Menampilkan pertandingan yang sedang LIVE atau Terjadwal (Non-Tournament)
+        $query = Pertandingan::with(['teamA', 'teamB', 'sport', 'games'])
             ->whereIn('status', ['scheduled', 'live'])
-            ->whereNull('tournament_id') // Tampilkan yang mandiri saja di list utama
+            ->whereNull('tournament_id'); // Tampilkan yang mandiri saja di list utama
+
+        if ($selectedSport && $selectedSport !== 'all') {
+            $query->where('sport_id', $selectedSport);
+        }
+
+        $pertandingans = $query->orderByRaw("FIELD(status, 'live', 'scheduled')")
             ->orderBy('waktu_tanding', 'asc')
             ->get();
 
-        // Ambil tournament yang aktif
-        $tournaments = Tournament::with(['sport', 'pertandingans.teamA', 'pertandingans.teamB', 'pertandingans.winner'])
-            ->where('is_active', true)
-            ->get();
+        $sports = Sport::all();
 
-        return view('dashboard', compact('pertandingans', 'tournaments'));
+        return view('dashboard', compact('pertandingans', 'sports', 'selectedSport'));
     }
 
     public function adminDashboard()
@@ -39,16 +44,101 @@ class PertandinganController extends Controller
 
         $teams = Team::orderBy('name', 'asc')->get();
         $sports = Sport::orderBy('nama_sport', 'asc')->get();
-        $pertandingans = Pertandingan::with(['teamA', 'teamB', 'sport'])
+
+        // Grouping pertandingans
+        $pertandingans = Pertandingan::with(['teamA', 'teamB', 'sport', 'tournament'])
             ->orderBy('waktu_tanding', 'desc')
             ->get();
 
-        return view('admin.dashboard', compact('teams', 'sports', 'pertandingans'));
+        $groupedMatches = $pertandingans->groupBy(function ($item) {
+            return $item->tournament_id ? 'tournament_' . $item->tournament_id : 'independent';
+        });
+
+        $tournaments = Tournament::with(['sport', 'teams'])->where('year', date('Y'))->get();
+
+        return view('admin.dashboard', compact('teams', 'sports', 'pertandingans', 'groupedMatches', 'tournaments'));
+    }
+
+    public function quickUpdate(Request $request, Pertandingan $pertandingan)
+    {
+        $request->validate([
+            'waktu_tanding' => 'nullable|date',
+            'lokasi' => 'nullable|string',
+            'team_a_id' => 'nullable|exists:teams,id',
+            'team_b_id' => 'nullable|exists:teams,id',
+        ]);
+
+        $pertandingan->update($request->only(['waktu_tanding', 'lokasi', 'team_a_id', 'team_b_id']));
+
+        return back()->with('success', 'Detail pertandingan berhasil diperbarui!');
+    }
+
+    public function bulkLive(Request $request)
+    {
+        $request->validate([
+            'match_ids' => 'required|array',
+            'match_ids.*' => 'exists:pertandingans,id',
+        ]);
+
+        Pertandingan::whereIn('id', $request->match_ids)
+            ->where('status', 'scheduled')
+            ->update(['status' => 'live']);
+
+        return back()->with('success', count($request->match_ids) . ' pertandingan berhasil diaktifkan ke LIVE!');
+    }
+
+    public function rerollBracket(Tournament $tournament)
+    {
+        return DB::transaction(function () use ($tournament) {
+            $teamIds = $tournament->teams()->pluck('teams.id')->toArray();
+            shuffle($teamIds);
+
+            // Ambil semua match round 1 untuk tournament ini
+            $r1Matches = $tournament->pertandingans()
+                ->where('round', 1)
+                ->orderBy('match_number', 'asc')
+                ->get();
+
+            $numTeams = count($teamIds);
+
+            // Reset semua tim di bracket dulu (biar bersih)
+            $tournament->pertandingans()->update([
+                'team_a_id' => null,
+                'team_b_id' => null,
+                'winner_id' => null,
+                'score_a' => 0,
+                'score_b' => 0,
+                'status' => 'scheduled'
+            ]);
+
+            // Isi ulang Round 1
+            for ($i = 0; $i < $numTeams; $i += 2) {
+                $matchIdx = $i / 2;
+                if (isset($r1Matches[$matchIdx])) {
+                    $update = ['team_a_id' => $teamIds[$i]];
+                    if (isset($teamIds[$i + 1])) {
+                        $update['team_b_id'] = $teamIds[$i + 1];
+                    }
+                    $r1Matches[$matchIdx]->update($update);
+                }
+            }
+
+            return back()->with('success', 'Bracket berhasil di-reroll dengan urutan tim baru!');
+        });
     }
 
     public function history()
     {
         $selectedYear = request('year', 'all');
+        $selectedSportId = request('sport_id', 'all');
+        $selectedTournamentId = request('tournament_id');
+
+        // Ambil data tournament yang dipilih jika ada
+        $selectedTournament = null;
+        if ($selectedTournamentId) {
+            $selectedTournament = Tournament::with(['sport', 'pertandingans.teamA', 'pertandingans.teamB', 'pertandingans.winner', 'pertandingans.games'])
+                ->find($selectedTournamentId);
+        }
 
         $query = Pertandingan::where('status', 'finished')
             ->with(['teamA', 'teamB', 'sport', 'games'])
@@ -58,28 +148,42 @@ class PertandinganController extends Controller
             $query->whereYear('waktu_tanding', $selectedYear);
         }
 
+        if ($selectedSportId !== 'all') {
+            $query->where('sport_id', $selectedSportId);
+        }
+
         $history = $query->get()
             ->groupBy(function ($item) {
                 return $item->waktu_tanding->format('Y');
             });
 
         // Ambil tournament yang sudah selesai
-        $tournaments = Tournament::with(['sport', 'pertandingans.teamA', 'pertandingans.teamB', 'pertandingans.winner', 'pertandingans.games'])
+        $tournamentsQuery = Tournament::with(['sport', 'pertandingans.teamA', 'pertandingans.teamB', 'pertandingans.winner', 'pertandingans.games'])
+            ->withCount('teams')
             ->whereHas('pertandingans', function ($q) {
                 $q->where('status', 'finished');
-            })
-            ->when($selectedYear !== 'all', function ($q) use ($selectedYear) {
-                $q->where('year', $selectedYear);
-            })
-            ->get();
+            });
+
+        if ($selectedYear !== 'all') {
+            $tournamentsQuery->where('year', $selectedYear);
+        }
+
+        if ($selectedSportId !== 'all') {
+            $tournamentsQuery->where('sport_id', $selectedSportId);
+        }
+
+        $tournaments = $tournamentsQuery->orderBy('year', 'desc')->get();
 
         $years = Pertandingan::where('status', 'finished')
             ->selectRaw('YEAR(waktu_tanding) as year')
+            ->union(Tournament::select('year'))
             ->distinct()
             ->orderBy('year', 'desc')
             ->pluck('year');
 
-        return view('history', compact('history', 'years', 'selectedYear', 'tournaments'));
+        $sports = Sport::all();
+
+        return view('history', compact('history', 'years', 'selectedYear', 'tournaments', 'selectedTournament', 'sports', 'selectedSportId'));
     }
 
     public function store(Request $request)
@@ -104,12 +208,20 @@ class PertandinganController extends Controller
         // Auto-update status scheduled ke live jika waktu sudah terlewati
         Pertandingan::autoUpdateLiveStatus();
 
-        $pertandingans = Pertandingan::with(['teamA', 'teamB', 'sport'])
+        $pertandingans = Pertandingan::with(['teamA', 'teamB', 'sport', 'games', 'tournament'])
             ->orderBy('status', 'asc') // live akan muncul lebih dulu
             ->orderBy('waktu_tanding', 'desc')
             ->get();
 
-        return view('admin.skor', compact('pertandingans'));
+        $groupedMatches = $pertandingans->groupBy(function ($item) {
+            return $item->tournament_id ? 'tournament_' . $item->tournament_id : 'independent';
+        });
+
+        $tournaments = Tournament::with(['sport'])->whereHas('pertandingans', function ($q) {
+            $q->whereIn('status', ['live', 'scheduled']);
+        })->get();
+
+        return view('admin.skor', compact('pertandingans', 'groupedMatches', 'tournaments'));
     }
 
     public function updateScore(Request $request, Pertandingan $pertandingan)
@@ -175,11 +287,28 @@ class PertandinganController extends Controller
 
             if ($pertandingan->tournament_id && $pertandingan->next_match_id && isset($updateData['winner_id'])) {
                 $nextMatch = Pertandingan::find($pertandingan->next_match_id);
+                $loserId = ($updateData['winner_id'] == $pertandingan->team_a_id) ? $pertandingan->team_b_id : $pertandingan->team_a_id;
+
                 if ($nextMatch) {
                     if ($pertandingan->match_number % 2 != 0) {
                         $nextMatch->update(['team_a_id' => $updateData['winner_id']]);
                     } else {
                         $nextMatch->update(['team_b_id' => $updateData['winner_id']]);
+                    }
+                }
+
+                // Jika ini Semi Final, kirim yang kalah ke Perebutan Juara 3
+                if ($pertandingan->babak == 'Semi Final') {
+                    $thirdPlaceMatch = Pertandingan::where('tournament_id', $pertandingan->tournament_id)
+                        ->where('babak', 'Perebutan Juara 3')
+                        ->first();
+
+                    if ($thirdPlaceMatch) {
+                        if ($pertandingan->match_number % 2 != 0) {
+                            $thirdPlaceMatch->update(['team_a_id' => $loserId]);
+                        } else {
+                            $thirdPlaceMatch->update(['team_b_id' => $loserId]);
+                        }
                     }
                 }
             }
@@ -189,11 +318,15 @@ class PertandinganController extends Controller
 
         broadcast(new ScoreUpdated($pertandingan));
 
-        return back()->with('success', 'Data pertandingan berhasil diperbarui!');
+        return back()->with([
+            'success' => 'Data pertandingan berhasil diperbarui!',
+            'updated_id' => $pertandingan->id
+        ]);
     }
 
     public function show(Pertandingan $pertandingan)
     {
+        $pertandingan->load(['teamA', 'teamB', 'sport', 'games.winner']);
         return view('detail', compact('pertandingan'));
     }
 
@@ -202,7 +335,8 @@ class PertandinganController extends Controller
         $request->validate([
             'tournament_name' => 'required|string',
             'sport_id' => 'required|exists:sports,id',
-            'team_ids' => 'required|array|min:2',
+            'team_ids' => 'nullable|array',
+            'manual_team_count' => 'nullable|integer|in:4,8,16',
         ]);
 
         return DB::transaction(function () use ($request) {
@@ -213,11 +347,19 @@ class PertandinganController extends Controller
                 'year' => date('Y'),
             ]);
 
-            $teamIds = $request->team_ids;
-            shuffle($teamIds);
-            $tournament->teams()->attach($teamIds);
+            $teamIds = $request->team_ids ?? [];
+            if ($request->manual_team_count && count($teamIds) == 0) {
+                $numTeams = (int) $request->manual_team_count;
+            } else {
+                $numTeams = count($teamIds);
+                shuffle($teamIds);
+                $tournament->teams()->attach($teamIds);
+            }
 
-            $numTeams = count($teamIds);
+            if ($numTeams < 2) {
+                return back()->with('error', 'Minimal pilih 2 tim atau tentukan jumlah tim manual.');
+            }
+
             $numRounds = ceil(log($numTeams, 2));
             $totalMatchesNeeded = pow(2, $numRounds) - 1;
 
@@ -257,6 +399,20 @@ class PertandinganController extends Controller
 
                     $roundMatches[$r][] = $match;
                 }
+            }
+
+            // 1.5. Buat Perebutan Juara 3 (Bronze Match) jika ada minimal 4 tim (Semi Final)
+            if ($numRounds >= 2) {
+                Pertandingan::create([
+                    'sport_id' => $request->sport_id,
+                    'tournament_id' => $tournament->id,
+                    'round' => $numRounds - 1, // Sama level dengan Semi Final tapi tidak lanjut ke Final
+                    'match_number' => 99, // Special number for 3rd place match
+                    'status' => 'scheduled',
+                    'babak' => 'Perebutan Juara 3',
+                    'waktu_tanding' => now()->addDays($numRounds),
+                    'lokasi' => 'TBA',
+                ]);
             }
 
             // 2. Isi Round 1 dengan tim yang ada

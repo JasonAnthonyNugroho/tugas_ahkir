@@ -115,10 +115,58 @@
 
                     <hr class="border-secondary mb-5" style="opacity: 0.1;">
 
+                    <!-- Game Breakdown (For BO3) -->
+                    @if($pertandingan->games->isNotEmpty())
+                        <div class="games-breakdown mb-5">
+                            <h5 class="font-weight-bold text-white mb-4 d-flex align-items-center">
+                                <i class="bi bi-controller mr-3 text-primary"></i> Detail Match (Best of {{ $pertandingan->games->count() }})
+                            </h5>
+                            <div class="row">
+                                @foreach($pertandingan->games as $game)
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100 border-0" style="background: rgba(255,255,255,0.03); border-radius: 20px; border: 1px solid var(--glass-border) !important;">
+                                            <div class="card-header border-0 bg-transparent pt-4 px-4 pb-0">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="badge badge-primary px-3 py-1" style="border-radius: 100px; font-size: 0.7rem;">MATCH {{ $game->game_number }}</span>
+                                                    @if($game->winner_id)
+                                                        <span class="text-success small font-weight-bold">
+                                                            <i class="bi bi-trophy-fill mr-1"></i> {{ $game->winner?->name ?? 'Unknown' }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-4">
+                                                <div class="text-center mb-3">
+                                                    <div class="h4 font-weight-bold text-white mb-0">
+                                                        {{ $game->score_a }} <span class="text-muted mx-1">-</span> {{ $game->score_b }}
+                                                    </div>
+                                                </div>
+                                                
+                                                @if($game->screenshot)
+                                                    <div class="game-screenshot-container" style="cursor: pointer;" onclick="window.open('{{ asset('storage/' . $game->screenshot) }}', '_blank')">
+                                                        <img src="{{ asset('storage/' . $game->screenshot) }}" alt="Game {{ $game->game_number }} SS" 
+                                                            class="img-fluid rounded-lg shadow-sm mb-2" style="width: 100%; height: 120px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1);">
+                                                        <div class="text-center">
+                                                            <span class="text-muted small"><i class="bi bi-zoom-in mr-1"></i> Klik untuk perbesar</span>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="d-flex align-items-center justify-content-center bg-dark rounded-lg" style="height: 120px; opacity: 0.5;">
+                                                        <i class="bi bi-image text-muted h3 mb-0"></i>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Evidence / Screenshot Section -->
                     <div class="evidence-section">
                         <h5 class="font-weight-bold text-white mb-4 d-flex align-items-center">
-                            <i class="bi bi-image mr-3 text-primary"></i> Bukti Hasil Pertandingan
+                            <i class="bi bi-image mr-3 text-primary"></i> Bukti Hasil Keseluruhan
                         </h5>
 
                         @if($pertandingan->screenshot)
@@ -133,7 +181,7 @@
                                 <i class="bi bi-info-circle text-primary mt-1 mr-3"></i>
                                 <p class="small text-muted mb-0">
                                     Screenshot ini diunggah secara resmi oleh panitia Rector Cup sebagai bukti transparansi dan
-                                    validitas hasil pertandingan yang telah berlangsung.
+                                    validitas hasil pertandingan yang telah berlangsung secara keseluruhan.
                                 </p>
                             </div>
                         @else

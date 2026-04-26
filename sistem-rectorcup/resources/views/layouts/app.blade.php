@@ -322,8 +322,18 @@
 
         .bracket-match:hover {
             border-color: var(--accent-primary) !important;
-            background: rgba(255, 255, 255, 0.06) !important;
-            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.08) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .bracket-match-link {
+            transition: all 0.3s ease;
+            display: block;
+        }
+
+        .bracket-match-link:hover {
+            text-decoration: none;
         }
 
         .bracket-connector-v {
@@ -445,7 +455,7 @@
     </div>
     @yield('scripts')
 
-    @if(session('success'))
+    @if(session('success') && !session('updated_id'))
         <script>
             Swal.fire({
                 title: 'Berhasil!',
