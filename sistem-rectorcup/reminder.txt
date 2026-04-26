@@ -3,3 +3,8 @@
 - git commit -m "label apa yang berubah" - = catatan untuk fitur 
 atau apa yang dikerjakan atau selesai
 - git push origin main - = buat push ke server github
+
+terminal : 
+php artisan queue:work
+php artisan reverb:start
+php artisan serve

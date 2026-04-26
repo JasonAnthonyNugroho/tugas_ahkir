@@ -10,10 +10,20 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('pertandingans', function (Blueprint $table) {
+        Schema::create('pertandingans', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('sport_id')->constrained('sports')->onDelete('cascade');
-            $table->string('babak')->nullable(); // Contoh: Quarter Final, Final [cite: 117]
-            $table->string('format_tanding')->default('Knockout'); // BO3 atau BO5 [cite: 118]
+            $table->foreignId('team_a_id')->constrained('teams')->onDelete('cascade');
+            $table->foreignId('team_b_id')->constrained('teams')->onDelete('cascade');
+            $table->integer('score_a')->default(0);
+            $table->integer('score_b')->default(0);
+            $table->dateTime('waktu_tanding');
+            $table->string('lokasi');
+            $table->enum('status', ['scheduled', 'live', 'finished'])->default('scheduled');
+            $table->timestamp('selesai_pada')->nullable();
+            $table->string('babak')->nullable(); // Contoh: Quarter Final, Final
+            $table->string('format_tanding')->default('Knockout'); // BO3 atau BO5
+            $table->timestamps();
         });
     }
 
@@ -22,6 +32,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('matches');
+        Schema::dropIfExists('pertandingans');
     }
 };

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pertandingans', function (Blueprint $table) {
-            $table->timestamp('selesai_pada')->nullable();
+            $table->string('screenshot')->nullable()->after('status');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pertandingans', function (Blueprint $table) {
-            //
+            $table->dropColumn('screenshot');
         });
     }
 };

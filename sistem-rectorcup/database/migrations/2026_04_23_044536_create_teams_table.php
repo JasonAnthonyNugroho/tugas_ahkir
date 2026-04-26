@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
             $table->string('name'); // Contoh: "Sistem Informasi A"
-            $table->string('prodi'); // Contoh: "Sistem Informasi"
+            $table->string('prodi');
             $table->timestamps();
         });
     }
@@ -24,8 +24,5 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::dropIfExists('teams');
-        Schema::table('teams', function (Blueprint $table) {
-            $table->foreignId('sport_id')->constrained('sports')->onDelete('cascade');
-        });
     }
 };
