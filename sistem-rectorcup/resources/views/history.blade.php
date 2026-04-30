@@ -92,7 +92,7 @@
                             </option>
                             @foreach($sports as $sport)
                                 <option value="{{ $sport->id }}" {{ $selectedSportId == $sport->id ? 'selected' : '' }}>
-                                    {{ $sport->nama_sport }}
+                                    {{ $sport->nama_sport }}{{ $sport->sub_kategori ? ' - ' . $sport->sub_kategori : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -208,13 +208,18 @@
                                 </h5>
                                 <div class="d-flex flex-column justify-content-around h-100">
                                     @foreach($roundMatches as $match)
+                                        @php
+                                            $labelParts = $match->custom_label ? preg_split('/\s+VS\s+/i', $match->custom_label) : null;
+                                            $leftName = $match->teamA?->name ?? ($labelParts[0] ?? 'TBD');
+                                            $rightName = $match->teamB?->name ?? ($labelParts[1] ?? 'TBD');
+                                        @endphp
                                         <a href="{{ route('pertandingan.show', $match->id) }}" class="bracket-match-link text-decoration-none">
                                             <div class="bracket-match mb-4 p-3 rounded"
                                                 style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); position: relative; transition: all 0.3s ease;">
                                                 {{-- Tim A --}}
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                                     <span class="small font-weight-bold {{ $match->winner_id == $match->team_a_id && $match->team_a_id ? 'text-primary' : 'text-white' }}">
-                                                        {{ $match->teamA?->name ?? 'TBD' }}
+                                                        {{ $leftName }}
                                                     </span>
                                                     <span class="badge {{ $match->winner_id == $match->team_a_id && $match->team_a_id ? 'badge-primary' : 'badge-dark' }} px-2">
                                                         {{ $match->score_a }}
@@ -223,7 +228,7 @@
                                                 {{-- Tim B --}}
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <span class="small font-weight-bold {{ $match->winner_id == $match->team_b_id && $match->team_b_id ? 'text-primary' : 'text-white' }}">
-                                                        {{ $match->teamB?->name ?? 'TBD' }}
+                                                        {{ $rightName }}
                                                     </span>
                                                     <span class="badge {{ $match->winner_id == $match->team_b_id && $match->team_b_id ? 'badge-primary' : 'badge-dark' }} px-2">
                                                         {{ $match->score_b }}
@@ -244,6 +249,11 @@
                             $thirdPlaceMatch = $selectedTournament->pertandingans->where('match_number', 99)->first();
                         @endphp
                         @if($thirdPlaceMatch)
+                            @php
+                                $thirdLabelParts = $thirdPlaceMatch->custom_label ? preg_split('/\s+VS\s+/i', $thirdPlaceMatch->custom_label) : null;
+                                $thirdLeft = $thirdPlaceMatch->teamA?->name ?? ($thirdLabelParts[0] ?? 'TBD');
+                                $thirdRight = $thirdPlaceMatch->teamB?->name ?? ($thirdLabelParts[1] ?? 'TBD');
+                            @endphp
                             <div class="bracket-round mr-5" style="width: 280px;">
                                 <h5 class="text-center text-muted small font-weight-bold text-uppercase mb-4">
                                     {{ $thirdPlaceMatch->babak }}
@@ -255,7 +265,7 @@
                                             {{-- Tim A --}}
                                             <div class="d-flex justify-content-between align-items-center mb-2">
                                                 <span class="small font-weight-bold {{ $thirdPlaceMatch->winner_id == $thirdPlaceMatch->team_a_id && $thirdPlaceMatch->team_a_id ? 'text-primary' : 'text-white' }}">
-                                                    {{ $thirdPlaceMatch->teamA?->name ?? 'TBD' }}
+                                                    {{ $thirdLeft }}
                                                 </span>
                                                 <span class="badge {{ $thirdPlaceMatch->winner_id == $thirdPlaceMatch->team_a_id && $thirdPlaceMatch->team_a_id ? 'badge-primary' : 'badge-dark' }} px-2">
                                                     {{ $thirdPlaceMatch->score_a }}
@@ -264,7 +274,7 @@
                                             {{-- Tim B --}}
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="small font-weight-bold {{ $thirdPlaceMatch->winner_id == $thirdPlaceMatch->team_b_id && $thirdPlaceMatch->team_b_id ? 'text-primary' : 'text-white' }}">
-                                                    {{ $thirdPlaceMatch->teamB?->name ?? 'TBD' }}
+                                                    {{ $thirdRight }}
                                                 </span>
                                                 <span class="badge {{ $thirdPlaceMatch->winner_id == $thirdPlaceMatch->team_b_id && $thirdPlaceMatch->team_b_id ? 'badge-primary' : 'badge-dark' }} px-2">
                                                     {{ $thirdPlaceMatch->score_b }}
@@ -299,7 +309,7 @@
                                             <i class="bi {{ $tournament->sport->icon ?? 'bi-controller' }} text-white h2 mb-0"></i>
                                         </div>
                                         
-                                        <h5 class="font-weight-bold text-white mb-1">{{ strtoupper($tournament->sport->nama_sport) }}</h5>
+                                        <h5 class="font-weight-bold text-white mb-1">{{ strtoupper($tournament->sport->nama_sport) }}{{ $tournament->sport->sub_kategori ? ' - ' . strtoupper($tournament->sport->sub_kategori) : '' }}</h5>
                                         <p class="text-muted small text-uppercase tracking-widest mb-3">{{ $tournament->name }}</p>
                                         
                                         <div class="d-flex justify-content-center align-items-center mb-3">
@@ -345,13 +355,18 @@
 
                     <div class="row">
                         @foreach($daftarPertandingan as $p)
+                            @php
+                                $cardLabelParts = $p->custom_label ? preg_split('/\s+VS\s+/i', $p->custom_label) : null;
+                                $cardLeft = $p->teamA?->name ?? ($cardLabelParts[0] ?? 'TBD');
+                                $cardRight = $p->teamB?->name ?? ($cardLabelParts[1] ?? 'TBD');
+                            @endphp
                             <div class="col-md-6 col-xl-4 mb-4">
                                 <div class="card h-100 shadow-sm border-0" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 20px;">
                                     <div class="card-body p-4">
                                         <div class="d-flex justify-content-between align-items-start mb-4">
                                             <span class="badge badge-primary px-3 py-1" style="border-radius: 100px;">
                                                 <i class="bi {{ $p->sport->icon ?? 'bi-trophy' }} mr-2"></i>
-                                                {{ $p->sport->nama_sport ?? 'Tournament' }}
+                                                {{ $p->sport->nama_sport ?? 'Tournament' }}{{ $p->sport?->sub_kategori ? ' - ' . $p->sport->sub_kategori : '' }}
                                             </span>
                                             <span class="text-muted small">
                                                 <i class="bi bi-check-circle-fill text-success mr-1"></i> Selesai
@@ -360,14 +375,14 @@
 
                                         <div class="row text-center align-items-center py-3">
                                             <div class="col-5">
-                                                <h4 class="h6 font-weight-bold text-truncate mb-3 text-white">{{ $p->teamA?->name ?? 'TBD' }}</h4>
+                                                <h4 class="h6 font-weight-bold text-truncate mb-3 text-white">{{ $cardLeft }}</h4>
                                                 <div class="h3 font-weight-bold text-white">{{ $p->score_a }}</div>
                                             </div>
                                             <div class="col-2 p-0">
                                                 <div class="text-muted font-weight-bold small">VS</div>
                                             </div>
                                             <div class="col-5">
-                                                <h4 class="h6 font-weight-bold text-truncate mb-3 text-white">{{ $p->teamB?->name ?? 'TBD' }}</h4>
+                                                <h4 class="h6 font-weight-bold text-truncate mb-3 text-white">{{ $cardRight }}</h4>
                                                 <div class="h3 font-weight-bold text-white">{{ $p->score_b }}</div>
                                             </div>
                                         </div>
