@@ -234,6 +234,13 @@
                                                         {{ $match->score_b }}
                                                     </span>
                                                 </div>
+                                                @if($match->keterangan)
+                                                <div class="mt-2 text-center">
+                                                    <span class="badge badge-info px-2 py-1" style="font-size: 0.6rem; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2);">
+                                                        {{ $match->keterangan }}
+                                                    </span>
+                                                </div>
+                                                @endif
                                                 <div class="mt-2 text-center">
                                                     <span class="text-muted" style="font-size: 0.6rem;"><i class="bi bi-search mr-1"></i> Klik Detail</span>
                                                 </div>
@@ -280,6 +287,13 @@
                                                     {{ $thirdPlaceMatch->score_b }}
                                                 </span>
                                             </div>
+                                            @if($thirdPlaceMatch->keterangan)
+                                            <div class="mt-2 text-center">
+                                                <span class="badge badge-info px-2 py-1" style="font-size: 0.6rem; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2);">
+                                                    {{ $thirdPlaceMatch->keterangan }}
+                                                </span>
+                                            </div>
+                                            @endif
                                             <div class="mt-2 text-center">
                                                 <span class="text-muted" style="font-size: 0.6rem;"><i class="bi bi-search mr-1"></i> Klik Detail</span>
                                             </div>

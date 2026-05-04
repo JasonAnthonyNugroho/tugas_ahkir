@@ -64,7 +64,7 @@
                                                     onclick="decrementScore('score_a_{{ $p->id }}')">
                                                     <i class="bi bi-dash-lg"></i>
                                                 </button>
-                                                <input type="number" name="score_a" id="score_a_{{ $p->id }}"
+                                                <input type="number" name="score_a" id="score_a_{{ $p->id }}" data-match-id="{{ $p->id }}"
                                                     class="form-control form-control-lg text-center font-weight-bold text-white bg-transparent border-0 p-0"
                                                     style="font-size: 3.5rem; width: 100px; height: auto;" value="{{ $p->score_a }}">
                                                 <button type="button"
@@ -88,7 +88,7 @@
                                                         onclick="incrementScore('score_a_{{ $p->id }}')">
                                                         <i class="bi bi-chevron-up"></i>
                                                     </button>
-                                                    <input type="number" name="score_a" id="score_a_{{ $p->id }}"
+                                                    <input type="number" name="score_a" id="score_a_{{ $p->id }}" data-match-id="{{ $p->id }}"
                                                         class="form-control form-control-lg text-center font-weight-bold text-white bg-transparent border-0 p-0"
                                                         style="font-size: 3rem; height: auto;" value="{{ $p->score_a }}">
                                                     <button type="button"
@@ -110,7 +110,7 @@
                                                         onclick="incrementScore('score_b_{{ $p->id }}')">
                                                         <i class="bi bi-chevron-up"></i>
                                                     </button>
-                                                    <input type="number" name="score_b" id="score_b_{{ $p->id }}"
+                                                    <input type="number" name="score_b" id="score_b_{{ $p->id }}" data-match-id="{{ $p->id }}"
                                                         class="form-control form-control-lg text-center font-weight-bold text-white bg-transparent border-0 p-0"
                                                         style="font-size: 3rem; height: auto;" value="{{ $p->score_b }}">
                                                     <button type="button"
@@ -183,6 +183,21 @@
                                             <option value="live" selected>TETAP LIVE</option>
                                             <option value="finished">SELESAI (ARCHIVE)</option>
                                         </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label class="small font-weight-bold text-muted text-uppercase mb-2">
+                                            <i class="bi bi-info-circle mr-1"></i> Keterangan Bracket
+                                        </label>
+                                        <input type="text" name="keterangan" class="form-control" 
+                                            placeholder="Contoh: Badminton Ganda Putra, Badminton Ganda Putri, dll."
+                                            value="{{ $p->keterangan ?? '' }}">
+                                        <small class="text-muted mt-1 d-block">
+                                            <i class="bi bi-lightbulb mr-1"></i> 
+                                            Keterangan akan ditampilkan di bracket untuk membantu peserta memahami jenis pertandingan.
+                                        </small>
                                     </div>
                                 </div>
 
@@ -406,6 +421,61 @@
             if (val > 0) {
                 input.value = val - 1;
             }
+        }
+
+        // Laravel Reverb Real-time Implementation for Admin Skor
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Echo !== 'undefined') {
+                console.log('Initializing Laravel Reverb for Admin Skor...');
+                
+                // Listen for score updates
+                Echo.channel('scores')
+                    .listen('.score.updated', function(data) {
+                        console.log('Admin Skor: Score updated via Reverb:', data);
+                        
+                        // Update score in form if match exists
+                        const scoreInputA = document.querySelector(`input[name="score_a"][data-match-id="${data.id}"]`);
+                        const scoreInputB = document.querySelector(`input[name="score_b"][data-match-id="${data.id}"]`);
+                        
+                        if (scoreInputA) scoreInputA.value = data.score_a;
+                        if (scoreInputB) scoreInputB.value = data.score_b;
+                        
+                        // Show notification
+                        showSkorNotification(`Skor diperbarui! ${data.team_a || 'Tim A'} ${data.score_a} - ${data.score_b} ${data.team_b || 'Tim B'}`, 'success');
+                    })
+                    .listen('.match.created', function(data) {
+                        console.log('Admin Skor: New match created via Reverb:', data);
+                        showSkorNotification('Pertandingan baru dibuat! Refresh halaman untuk melihat.', 'info');
+                    });
+                
+                console.log('Laravel Reverb initialized for Admin Skor');
+            }
+            
+            // Handle Pusher connection errors
+            if (typeof Echo !== 'undefined' && Echo.connector && Echo.connector.pusher) {
+                Echo.connector.pusher.connection.bind('error', function(err) {
+                    console.warn('Pusher connection error:', err);
+                });
+                
+                Echo.connector.pusher.connection.bind('disconnected', function() {
+                    console.warn('Pusher disconnected - real-time features paused');
+                });
+            }
+        });
+        
+        // Function to show notification
+        function showSkorNotification(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} border-0 shadow-sm mb-4 py-3`;
+            alertDiv.style.cssText = 'border-radius: 16px; background: rgba(16, 185, 129, 0.1); color: #10b981; position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `<i class="bi bi-check-circle-fill mr-2"></i> ${message}`;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
         }
     </script>
 @endsection

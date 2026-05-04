@@ -28,9 +28,11 @@ class PertandinganController extends Controller
             $query->where('sport_id', $selectedSport);
         }
 
-        $pertandingans = $query->orderByRaw("FIELD(status, 'live', 'scheduled')")
-            ->orderBy('waktu_tanding', 'asc')
-            ->get();
+        $pertandingans = $query->orderBy('waktu_tanding', 'asc')
+            ->get()
+            ->sortBy(function ($item) {
+                return $item->status === 'live' ? 0 : 1;
+            })->values();
 
         $sports = Sport::all();
 
@@ -174,12 +176,22 @@ class PertandinganController extends Controller
 
         $tournaments = $tournamentsQuery->orderBy('year', 'desc')->get();
 
-        $years = Pertandingan::where('status', 'finished')
-            ->selectRaw('YEAR(waktu_tanding) as year')
-            ->union(Tournament::select('year'))
-            ->distinct()
-            ->orderBy('year', 'desc')
-            ->pluck('year');
+        $pertandinganYears = Pertandingan::where('status', 'finished')
+            ->select('waktu_tanding')
+            ->get()
+            ->map(function ($item) {
+                return $item->waktu_tanding->format('Y');
+            })
+            ->unique();
+
+        $tournamentYears = Tournament::select('year')
+            ->pluck('year')
+            ->unique();
+
+        $years = $pertandinganYears->merge($tournamentYears)
+            ->unique()
+            ->sortDesc()
+            ->values();
 
         $sports = Sport::all();
 
@@ -194,6 +206,7 @@ class PertandinganController extends Controller
             'team_b_id' => $request->team_b,
             'waktu_tanding' => $request->waktu,
             'lokasi' => $request->lokasi,
+            'keterangan' => $request->keterangan,
             'status' => 'scheduled',
         ]);
 
@@ -230,6 +243,7 @@ class PertandinganController extends Controller
             'score_a' => 'required|integer',
             'score_b' => 'required|integer',
             'status' => 'required|string',
+            'keterangan' => 'nullable|string|max:255',
             'screenshot' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'game_scores' => 'nullable|array',
             'game_screenshots.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -240,6 +254,11 @@ class PertandinganController extends Controller
             'score_b' => $request->score_b,
             'status' => $request->status,
         ];
+
+        // Add keterangan if provided
+        if ($request->has('keterangan')) {
+            $updateData['keterangan'] = $request->keterangan;
+        }
 
         // Handle Screenshot Utama
         if ($request->hasFile('screenshot')) {
@@ -324,6 +343,29 @@ class PertandinganController extends Controller
         ]);
     }
 
+    public function update(Request $request, Pertandingan $pertandingan)
+    {
+        $request->validate([
+            'sport_id' => 'required|exists:sports,id',
+            'team_a_id' => 'required|exists:teams,id',
+            'team_b_id' => 'required|exists:teams,id|different:team_a_id',
+            'waktu_tanding' => 'required|date',
+            'lokasi' => 'required|string|max:255',
+            'keterangan' => 'nullable|string|max:255',
+        ]);
+
+        $pertandingan->update([
+            'sport_id' => $request->sport_id,
+            'team_a_id' => $request->team_a_id,
+            'team_b_id' => $request->team_b_id,
+            'waktu_tanding' => $request->waktu_tanding,
+            'lokasi' => $request->lokasi,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        return redirect()->route('admin.index')->with('success', 'Pertandingan berhasil diperbarui!');
+    }
+
     public function show(Pertandingan $pertandingan)
     {
         $pertandingan->load(['teamA', 'teamB', 'sport', 'games.winner']);
@@ -337,6 +379,7 @@ class PertandinganController extends Controller
             'sport_id' => 'required|exists:sports,id',
             'team_ids' => 'nullable|array',
             'manual_team_count' => 'nullable|integer|in:4,8,16',
+            'keterangan' => 'nullable|string|max:255',
         ]);
 
         return DB::transaction(function () use ($request) {
@@ -395,6 +438,7 @@ class PertandinganController extends Controller
                         'babak' => $babakName,
                         'waktu_tanding' => now()->addDays($r), // Placeholder waktu
                         'lokasi' => 'TBA',
+                        'keterangan' => $request->keterangan,
                     ]);
 
                     $roundMatches[$r][] = $match;
@@ -412,6 +456,7 @@ class PertandinganController extends Controller
                     'babak' => 'Perebutan Juara 3',
                     'waktu_tanding' => now()->addDays($numRounds),
                     'lokasi' => 'TBA',
+                    'keterangan' => $request->keterangan,
                 ]);
             }
 
@@ -452,5 +497,11 @@ class PertandinganController extends Controller
         if ($diff == 2)
             return 'Quarter Final';
         return 'Babak ' . $round;
+    }
+
+    public function deleteTournament(\App\Models\Tournament $tournament)
+    {
+        $tournament->delete();
+        return back()->with('success', 'Turnamen berhasil dihapus!');
     }
 }

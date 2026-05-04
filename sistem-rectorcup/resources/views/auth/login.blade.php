@@ -23,7 +23,7 @@
                                         <i class="bi bi-person"></i>
                                     </span>
                                 </div>
-                                <input type="text" name="name" class="form-control" 
+                                <input type="text" name="username" class="form-control" 
                                     style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 0 12px 12px 0; color: white;"
                                     placeholder="Masukkan username" required>
                             </div>

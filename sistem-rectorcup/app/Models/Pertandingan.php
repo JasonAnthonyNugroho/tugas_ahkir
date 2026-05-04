@@ -15,6 +15,7 @@ class Pertandingan extends Model
         'score_b',
         'waktu_tanding',
         'lokasi',
+        'keterangan',
         'status',
         'selesai_pada',
         'babak',

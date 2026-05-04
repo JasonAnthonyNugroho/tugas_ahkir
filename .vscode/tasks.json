@@ -1,0 +1,46 @@
+{
+    "version": "2.0.0",
+    "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+    },
+    "tasks": [
+        {
+            "label": "Laravel: Serve",
+            "type": "shell",
+            "command": "cd sistem-rectorcup; php artisan serve",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                "group": "laravel-group"
+            }
+        },
+        {
+            "label": "Laravel: Queue",
+            "type": "shell",
+            "command": "cd sistem-rectorcup; php artisan queue:work",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                "group": "laravel-group"
+            }
+        },
+        {
+            "label": "Laravel: Reverb",
+            "type": "shell",
+            "command": "cd sistem-rectorcup; php artisan reverb:start",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                "group": "laravel-group"
+            }
+        }
+    ]
+}

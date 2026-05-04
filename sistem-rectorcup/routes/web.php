@@ -21,7 +21,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/store', [PertandinganController::class, 'store'])->name('pertandingan.store');
     Route::post('/admin/bracket/generate', [PertandinganController::class, 'generateBracket'])->name('admin.bracket.generate');
     Route::post('/admin/bracket/{tournament}/reroll', [PertandinganController::class, 'rerollBracket'])->name('admin.bracket.reroll');
+    Route::delete('/admin/tournament/{tournament}', [PertandinganController::class, 'deleteTournament'])->name('admin.tournament.delete');
     Route::patch('/admin/pertandingan/{pertandingan}/quick-update', [PertandinganController::class, 'quickUpdate'])->name('pertandingan.quick-update');
     Route::post('/admin/pertandingan/bulk-live', [PertandinganController::class, 'bulkLive'])->name('pertandingan.bulk-live');
     Route::patch('/pertandingan/{pertandingan}/update-score', [PertandinganController::class, 'updateScore']);
+    Route::patch('/pertandingan/{pertandingan}', [PertandinganController::class, 'update'])->name('pertandingan.update');
 });
