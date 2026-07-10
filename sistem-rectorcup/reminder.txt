@@ -8,3 +8,6 @@ terminal :
 php artisan queue:work
 php artisan reverb:start
 php artisan serve
+
+php artisan reverb:start
+npm run dev
