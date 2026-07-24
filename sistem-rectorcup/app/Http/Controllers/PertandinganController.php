@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MatchCreated;
+use App\Events\MatchStatusUpdated;
 use App\Events\ScoreUpdated;
 use App\Models\Pertandingan;
 use App\Models\Sport;
@@ -36,7 +38,7 @@ class PertandinganController extends Controller
         $sports = Sport::all();
         
         // Get active tournaments with their data
-        $tournaments = \App\Models\Tournament::with(['sport', 'teams', 'pertandingans' => function($q) {
+        $tournaments = Tournament::with(['sport', 'teams', 'pertandingans' => function($q) {
                 $q->whereIn('status', ['live', 'finished'])
                   ->orderBy('round', 'desc')
                   ->limit(5);
@@ -60,9 +62,7 @@ class PertandinganController extends Controller
             ->orderBy('waktu_tanding', 'desc')
             ->get();
 
-        $groupedMatches = $pertandingans->groupBy(function ($item) {
-            return $item->tournament_id ? 'tournament_' . $item->tournament_id : 'independent';
-        });
+        $groupedMatches = $this->groupMatchesByTournament($pertandingans);
 
         $tournaments = Tournament::with(['sport', 'teams'])->where('year', date('Y'))->get();
 
@@ -100,7 +100,7 @@ class PertandinganController extends Controller
         
         // Broadcast status update untuk setiap match
         foreach ($matches as $match) {
-            broadcast(new \App\Events\MatchStatusUpdated($match->id, 'live', [
+            broadcast(new MatchStatusUpdated($match->id, 'live', [
                 'id' => $match->id,
                 'status' => 'live',
                 'team_a' => $match->teamA?->name,
@@ -112,46 +112,7 @@ class PertandinganController extends Controller
         return back()->with('success', count($request->match_ids) . ' pertandingan berhasil diaktifkan ke LIVE!');
     }
 
-    public function rerollBracket(Tournament $tournament)
-    {
-        return DB::transaction(function () use ($tournament) {
-            $teamIds = $tournament->teams()->pluck('teams.id')->toArray();
-            shuffle($teamIds);
 
-            // Ambil semua match round 1 untuk tournament ini
-            $r1Matches = $tournament->pertandingans()
-                ->where('round', 1)
-                ->orderBy('match_number', 'asc')
-                ->get();
-
-            $numTeams = count($teamIds);
-
-            // Reset semua tim di bracket dulu (biar bersih)
-            $tournament->pertandingans()->update([
-                'team_a_id' => null,
-                'team_b_id' => null,
-                'winner_id' => null,
-                'score_a' => 0,
-                'score_b' => 0,
-                'status' => 'scheduled'
-            ]);
-
-            // Isi ulang Round 1
-            for ($i = 0; $i < $numTeams; $i += 2) {
-                $matchIdx = $i / 2;
-                if (isset($r1Matches[$matchIdx])) {
-                    $update = ['team_a_id' => $teamIds[$i]];
-                    if (isset($teamIds[$i + 1])) {
-                        $update['team_b_id'] = $teamIds[$i + 1];
-                    }
-                    $r1Matches[$matchIdx]->update($update);
-                }
-            }
-
-            return redirect()->route('admin.tournament.bracket.view', $tournament)
-            ->with('success', 'Bracket berhasil di-reroll dengan urutan tim baru!');
-        });
-    }
 
     public function history()
     {
@@ -236,7 +197,7 @@ class PertandinganController extends Controller
         ]);
 
         // Broadcast event pertandingan baru
-        broadcast(new \App\Events\MatchCreated($pertandingan));
+        broadcast(new MatchCreated($pertandingan));
 
         return redirect()->route('admin.index')->with('success', 'Jadwal berhasil ditambahkan!');
     }
@@ -248,9 +209,7 @@ class PertandinganController extends Controller
             ->orderBy('waktu_tanding', 'asc') // yang paling awal/jadul dulu
             ->get();
 
-        $groupedMatches = $pertandingans->groupBy(function ($item) {
-            return $item->tournament_id ? 'tournament_' . $item->tournament_id : 'independent';
-        });
+        $groupedMatches = $this->groupMatchesByTournament($pertandingans);
 
         $tournaments = Tournament::with(['sport'])->whereHas('pertandingans', function ($q) {
             $q->whereIn('status', ['live', 'scheduled']);
@@ -261,24 +220,6 @@ class PertandinganController extends Controller
 
     public function updateScore(Request $request, Pertandingan $pertandingan)
     {
-        // Debug file uploads
-        \Illuminate\Support\Facades\Log::info('Fungsi updateScore dipanggil oleh admin', [
-            'pertandingan_id' => $pertandingan->id,
-            'format_tanding' => $pertandingan->format_tanding,
-            'semua_keys_input' => array_keys($request->all()),
-            'punya_screenshot' => $request->hasFile('screenshot') ? 'YA' : 'TIDAK',
-            'punya_game_screenshots' => $request->hasFile('game_screenshots') ? 'YA' : 'TIDAK',
-            'daftar_file' => array_map(function($f) {
-                return [
-                    'original_name' => $f->getClientOriginalName(),
-                    'mime_type' => $f->getClientMimeType(),
-                    'size_kb' => $f->getSize() / 1024,
-                    'error_code' => $f->getError(),
-                    'error_message' => $f->getErrorMessage(),
-                ];
-            }, $request->allFiles()),
-        ]);
-
         // Cegah update skor jika salah satu tim masih TBD
         if (!$pertandingan->team_a_id || !$pertandingan->team_b_id) {
             return back()->with('error', 'Tidak bisa update skor — salah satu tim masih TBD. Selesaikan pertandingan sebelumnya terlebih dahulu.');
@@ -316,34 +257,40 @@ class PertandinganController extends Controller
         $cleanDate = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '', $date);
 
         $localFolder = "{$cleanYear}/{$cleanSportName}/{$cleanDate}";
-        $driveFolderPath = [$cleanYear, $cleanSportName, $cleanDate];
 
-        // Handle Screenshot Utama (untuk pertandingan independen / BO1)
-        if ($request->hasFile('screenshot')) {
-            if ($pertandingan->screenshot && file_exists(public_path('storage/' . $pertandingan->screenshot))) {
-                @unlink(public_path('storage/' . $pertandingan->screenshot));
-            }
-            
-            $file = $request->file('screenshot');
-            $timestamp = time();
-            $extension = $file->getClientOriginalExtension();
-            $fileName = "{$cleanSportName} - {$cleanDate}_{$timestamp}.{$extension}";
-            
-            // Simpan lokal di storage/app/public/[Tahun]/[Nama Sport]/[Tanggal]/
-            $path = $file->storeAs($localFolder, $fileName, 'public');
-            $updateData['screenshot'] = $path;
+        $this->handleMainScreenshot($request, $pertandingan, $localFolder, $cleanSportName, $cleanDate, $updateData);
+        $this->handleGameScores($request, $pertandingan);
+        $this->handleGameScreenshots($request, $pertandingan, $localFolder, $cleanSportName, $cleanDate);
 
-            // Upload ke Google Drive ke dalam folder bertingkat: [Tahun] / [Nama Sport] / [Tanggal]
-            try {
-                $driveService = app(\App\Services\GoogleDriveService::class);
-                $absolutePath = public_path('storage/' . $path);
-                $driveService->uploadFileToNestedFolders($absolutePath, $fileName, $driveFolderPath);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Gagal mengunggah screenshot utama ke Google Drive: ' . $e->getMessage());
-            }
+        // Logika Pengarsipan Otomatis & Auto-Advance Bracket
+        if ($request->status == 'finished' && $pertandingan->status != 'finished') {
+            $this->handleMatchFinished($request, $pertandingan, $updateData);
+        } else {
+            $pertandingan->update($updateData);
         }
 
-        // Handle BO3 Game Scores
+        // Refresh model to get latest data
+        $pertandingan->refresh();
+
+        $this->broadcastScoreUpdate($request, $pertandingan);
+
+        return back()->with([
+            'success' => 'Data pertandingan berhasil diperbarui!',
+            'updated_id' => $pertandingan->id
+        ]);
+    }
+
+    private function handleMainScreenshot(Request $request, Pertandingan $pertandingan, string $localFolder, string $cleanSportName, string $cleanDate, array &$updateData): void
+    {
+        if ($request->hasFile('screenshot')) {
+            $prefix = "{$cleanSportName} - {$cleanDate}";
+            $path = $this->storeScreenshot($request->file('screenshot'), $localFolder, $prefix, $pertandingan->screenshot);
+            $updateData['screenshot'] = $path;
+        }
+    }
+
+    private function handleGameScores(Request $request, Pertandingan $pertandingan): void
+    {
         if ($request->has('game_scores')) {
             foreach ($request->game_scores as $gameNum => $scores) {
                 $pertandingan->games()->updateOrCreate(
@@ -358,9 +305,10 @@ class PertandinganController extends Controller
                 );
             }
         }
+    }
 
-        // Handle BO3 Game Screenshots — independen dari game_scores
-        // Loop manual game 1-3, upload jika ada file yang dikirim
+    private function handleGameScreenshots(Request $request, Pertandingan $pertandingan, string $localFolder, string $cleanSportName, string $cleanDate): void
+    {
         if ($pertandingan->format_tanding === 'BO3') {
             for ($gameNum = 1; $gameNum <= 3; $gameNum++) {
                 if ($request->hasFile("game_screenshots.$gameNum")) {
@@ -369,82 +317,60 @@ class PertandinganController extends Controller
                         ['score_a' => 0, 'score_b' => 0, 'winner_id' => null]
                     );
 
-                    if ($game->screenshot && file_exists(public_path('storage/' . $game->screenshot))) {
-                        @unlink(public_path('storage/' . $game->screenshot));
-                    }
-
-                    $file = $request->file("game_screenshots.$gameNum");
-                    $timestamp = time();
-                    $extension = $file->getClientOriginalExtension();
-                    $fileName = "{$cleanSportName} - {$cleanDate}_game_{$gameNum}_{$timestamp}.{$extension}";
-
-                    // Simpan lokal di storage/app/public/[Tahun]/[Nama Sport]/[Tanggal]/
-                    $path = $file->storeAs($localFolder, $fileName, 'public');
+                    $prefix = "{$cleanSportName} - {$cleanDate}_game_{$gameNum}";
+                    $path = $this->storeScreenshot($request->file("game_screenshots.$gameNum"), $localFolder, $prefix, $game->screenshot);
                     $game->update(['screenshot' => $path]);
-
-                    // Upload ke Google Drive ke dalam folder bertingkat secara otomatis
-                    try {
-                        $driveService = app(\App\Services\GoogleDriveService::class);
-                        $absolutePath = public_path('storage/' . $path);
-                        $driveService->uploadFileToNestedFolders($absolutePath, $fileName, $driveFolderPath);
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error("Gagal mengunggah screenshot game {$gameNum} ke Google Drive: " . $e->getMessage());
-                    }
                 }
             }
         }
+    }
 
-        // Logika Pengarsipan Otomatis & Auto-Advance Bracket
-        if ($request->status == 'finished' && $pertandingan->status != 'finished') {
-            $updateData['selesai_pada'] = now();
+    private function handleMatchFinished(Request $request, Pertandingan $pertandingan, array &$updateData): void
+    {
+        $updateData['selesai_pada'] = now();
 
-            if ($request->score_a > $request->score_b) {
-                $updateData['winner_id'] = $pertandingan->team_a_id;
-            } elseif ($request->score_b > $request->score_a) {
-                $updateData['winner_id'] = $pertandingan->team_b_id;
+        if ($request->score_a > $request->score_b) {
+            $updateData['winner_id'] = $pertandingan->team_a_id;
+        } elseif ($request->score_b > $request->score_a) {
+            $updateData['winner_id'] = $pertandingan->team_b_id;
+        }
+
+        $pertandingan->update($updateData);
+
+        if ($pertandingan->tournament_id && $pertandingan->next_match_id && isset($updateData['winner_id'])) {
+            $nextMatch = Pertandingan::find($pertandingan->next_match_id);
+            $loserId = ($updateData['winner_id'] == $pertandingan->team_a_id) ? $pertandingan->team_b_id : $pertandingan->team_a_id;
+
+            if ($nextMatch) {
+                if ($pertandingan->match_number % 2 != 0) {
+                    $nextMatch->update(['team_a_id' => $updateData['winner_id']]);
+                } else {
+                    $nextMatch->update(['team_b_id' => $updateData['winner_id']]);
+                }
             }
 
-            $pertandingan->update($updateData);
+            if ($pertandingan->babak == 'Semi Final') {
+                $thirdPlaceMatch = Pertandingan::where('tournament_id', $pertandingan->tournament_id)
+                    ->where('babak', 'Perebutan Juara 3')
+                    ->first();
 
-            if ($pertandingan->tournament_id && $pertandingan->next_match_id && isset($updateData['winner_id'])) {
-                $nextMatch = Pertandingan::find($pertandingan->next_match_id);
-                $loserId = ($updateData['winner_id'] == $pertandingan->team_a_id) ? $pertandingan->team_b_id : $pertandingan->team_a_id;
-
-                if ($nextMatch) {
+                if ($thirdPlaceMatch) {
                     if ($pertandingan->match_number % 2 != 0) {
-                        $nextMatch->update(['team_a_id' => $updateData['winner_id']]);
+                        $thirdPlaceMatch->update(['team_a_id' => $loserId]);
                     } else {
-                        $nextMatch->update(['team_b_id' => $updateData['winner_id']]);
-                    }
-                }
-
-                // Jika ini Semi Final, kirim yang kalah ke Perebutan Juara 3
-                if ($pertandingan->babak == 'Semi Final') {
-                    $thirdPlaceMatch = Pertandingan::where('tournament_id', $pertandingan->tournament_id)
-                        ->where('babak', 'Perebutan Juara 3')
-                        ->first();
-
-                    if ($thirdPlaceMatch) {
-                        if ($pertandingan->match_number % 2 != 0) {
-                            $thirdPlaceMatch->update(['team_a_id' => $loserId]);
-                        } else {
-                            $thirdPlaceMatch->update(['team_b_id' => $loserId]);
-                        }
+                        $thirdPlaceMatch->update(['team_b_id' => $loserId]);
                     }
                 }
             }
-        } else {
-            $pertandingan->update($updateData);
         }
+    }
 
-        // Refresh model to get latest data
-        $pertandingan->refresh();
-
+    private function broadcastScoreUpdate(Request $request, Pertandingan $pertandingan): void
+    {
         broadcast(new ScoreUpdated($pertandingan));
 
-        // Jika status berubah ke finished, broadcast status update juga
         if ($request->status === 'finished') {
-            broadcast(new \App\Events\MatchStatusUpdated($pertandingan->id, 'finished', [
+            broadcast(new MatchStatusUpdated($pertandingan->id, 'finished', [
                 'id'     => $pertandingan->id,
                 'status' => 'finished',
                 'team_a' => $pertandingan->teamA?->name,
@@ -454,10 +380,57 @@ class PertandinganController extends Controller
                 'sport'  => $pertandingan->sport?->nama_sport,
             ]));
         }
+    }
 
-        return back()->with([
-            'success' => 'Data pertandingan berhasil diperbarui!',
-            'updated_id' => $pertandingan->id
+    private function storeScreenshot($file, string $folder, string $prefix, ?string $oldPath = null): string
+    {
+        if ($oldPath && file_exists(public_path('storage/' . $oldPath))) {
+            @unlink(public_path('storage/' . $oldPath));
+        }
+        
+        $timestamp = time();
+        $extension = $file->getClientOriginalExtension();
+        $fileName = "{$prefix}_{$timestamp}.{$extension}";
+        
+        return $file->storeAs($folder, $fileName, 'public');
+    }
+
+    private function groupMatchesByTournament($pertandingans)
+    {
+        return $pertandingans->groupBy(function ($item) {
+            return $item->tournament_id ? 'tournament_' . $item->tournament_id : 'independent';
+        });
+    }
+
+    public function apiLiveMatches()
+    {
+        $matches = Pertandingan::with(['teamA', 'teamB', 'sport'])
+            ->whereIn('status', ['live', 'scheduled'])
+            ->whereNotNull('team_a_id')
+            ->whereNotNull('team_b_id')
+            ->orderBy('waktu_tanding', 'asc')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id'          => $p->id,
+                    'status'      => $p->status,
+                    'score_a'     => $p->score_a,
+                    'score_b'     => $p->score_b,
+                    'team_a'      => $p->teamA?->name ?? 'TBD',
+                    'team_b'      => $p->teamB?->name ?? 'TBD',
+                    'team_a_id'   => $p->team_a_id,
+                    'team_b_id'   => $p->team_b_id,
+                    'sport'       => $p->sport?->nama_sport,
+                    'sport_icon'  => $p->sport?->icon ?? 'bi-trophy',
+                    'lokasi'      => $p->lokasi,
+                    'waktu'       => $p->waktu_tanding->format('d M, H:i'),
+                    'detail_url'  => route('pertandingan.show', $p->id),
+                ];
+            });
+
+        return response()->json([
+            'matches'   => $matches,
+            'timestamp' => now()->toIso8601String(),
         ]);
     }
 
@@ -488,11 +461,5 @@ class PertandinganController extends Controller
     {
         $pertandingan->load(['teamA', 'teamB', 'sport', 'games.winner']);
         return view('detail', compact('pertandingan'));
-    }
-
-    public function deleteTournament(\App\Models\Tournament $tournament)
-    {
-        $tournament->delete();
-        return back()->with('success', 'Turnamen dan semua pertandingan terkait berhasil dihapus!');
     }
 }

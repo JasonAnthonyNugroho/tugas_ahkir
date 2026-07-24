@@ -124,26 +124,18 @@ class CustomBracketController extends Controller
      */
     public function viewBracket(Tournament $tournament)
     {
-        $tournament->load(['sport', 'teams', 'pertandingans.teamA', 'pertandingans.teamB', 'pertandingans.winner']);
-        
-        // Group matches by round
-        $rounds = $tournament->pertandingans
-            ->where('babak', '!=', 'Perebutan Juara 3')
-            ->groupBy('round')
-            ->sortKeys();
-        
-        // Get 3rd place match if exists
-        $thirdPlaceMatch = $tournament->pertandingans
-            ->where('babak', 'Perebutan Juara 3')
-            ->first();
-
-        return view('admin.bracket-view', compact('tournament', 'rounds', 'thirdPlaceMatch'));
+        return $this->renderBracket($tournament, 'admin.bracket-view');
     }
 
     /**
      * Public view bracket untuk guest
      */
     public function publicBracket(Tournament $tournament)
+    {
+        return $this->renderBracket($tournament, 'public.bracket-view');
+    }
+
+    private function renderBracket(Tournament $tournament, string $viewName)
     {
         $tournament->load(['sport', 'teams', 'pertandingans.teamA', 'pertandingans.teamB', 'pertandingans.winner']);
         
@@ -158,7 +150,7 @@ class CustomBracketController extends Controller
             ->where('babak', 'Perebutan Juara 3')
             ->first();
 
-        return view('public.bracket-view', compact('tournament', 'rounds', 'thirdPlaceMatch'));
+        return view($viewName, compact('tournament', 'rounds', 'thirdPlaceMatch'));
     }
 
 
@@ -294,5 +286,76 @@ class CustomBracketController extends Controller
         }
 
         return back()->with('success', "Tournament \"{$tournament->name}\" berhasil diperbarui!");
+    }
+
+    public function rerollBracket(Tournament $tournament)
+    {
+        return DB::transaction(function () use ($tournament) {
+            $teamIds = $tournament->teams()->pluck('teams.id')->toArray();
+            shuffle($teamIds);
+
+            // Ambil semua match round 1 untuk tournament ini
+            $r1Matches = $tournament->pertandingans()
+                ->where('round', 1)
+                ->orderBy('match_number', 'asc')
+                ->get();
+
+            $numTeams = count($teamIds);
+
+            // Reset semua tim di bracket dulu (biar bersih)
+            $tournament->pertandingans()->update([
+                'team_a_id' => null,
+                'team_b_id' => null,
+                'winner_id' => null,
+                'score_a' => 0,
+                'score_b' => 0,
+                'status' => 'scheduled'
+            ]);
+
+            // Isi ulang Round 1
+            for ($i = 0; $i < $numTeams; $i += 2) {
+                $matchIdx = $i / 2;
+                if (isset($r1Matches[$matchIdx])) {
+                    $update = ['team_a_id' => $teamIds[$i]];
+                    if (isset($teamIds[$i + 1])) {
+                        $update['team_b_id'] = $teamIds[$i + 1];
+                    }
+                    $r1Matches[$matchIdx]->update($update);
+                }
+            }
+
+            return redirect()->route('admin.tournament.bracket.view', $tournament)
+            ->with('success', 'Bracket berhasil di-reroll dengan urutan tim baru!');
+        });
+    }
+
+    public function deleteTournament(Tournament $tournament)
+    {
+        $tournament->delete();
+        return back()->with('success', 'Turnamen dan semua pertandingan terkait berhasil dihapus!');
+    }
+
+    public function apiTournamentMatches(Tournament $tournament)
+    {
+        $matches = $tournament->pertandingans()
+            ->with(['teamA', 'teamB', 'winner'])
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'id'         => $m->id,
+                    'round'      => $m->round,
+                    'babak'      => $m->babak,
+                    'status'     => $m->status,
+                    'score_a'    => $m->score_a,
+                    'score_b'    => $m->score_b,
+                    'team_a'     => $m->teamA?->name ?? 'TBD',
+                    'team_b'     => $m->teamB?->name ?? 'TBD',
+                    'team_a_id'  => $m->team_a_id,
+                    'team_b_id'  => $m->team_b_id,
+                    'winner_id'  => $m->winner_id,
+                ];
+            });
+
+        return response()->json(['matches' => $matches, 'timestamp' => now()->toIso8601String()]);
     }
 }

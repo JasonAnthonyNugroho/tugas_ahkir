@@ -13,60 +13,10 @@ Route::get('/pertandingan/{pertandingan}', [PertandinganController::class, 'show
 Route::get('/tournament/{tournament}/bracket', [CustomBracketController::class, 'publicBracket'])->name('tournament.public.bracket');
 
 // API Polling — dipakai guest dashboard untuk update real-time tanpa WebSocket
-Route::get('/api/live-matches', function () {
-    $matches = \App\Models\Pertandingan::with(['teamA', 'teamB', 'sport'])
-        ->whereIn('status', ['live', 'scheduled'])
-        ->whereNotNull('team_a_id')
-        ->whereNotNull('team_b_id')
-        ->orderBy('waktu_tanding', 'asc')
-        ->get()
-        ->map(function ($p) {
-            return [
-                'id'          => $p->id,
-                'status'      => $p->status,
-                'score_a'     => $p->score_a,
-                'score_b'     => $p->score_b,
-                'team_a'      => $p->teamA?->name ?? 'TBD',
-                'team_b'      => $p->teamB?->name ?? 'TBD',
-                'team_a_id'   => $p->team_a_id,
-                'team_b_id'   => $p->team_b_id,
-                'sport'       => $p->sport?->nama_sport,
-                'sport_icon'  => $p->sport?->icon ?? 'bi-trophy',
-                'lokasi'      => $p->lokasi,
-                'waktu'       => $p->waktu_tanding->format('d M, H:i'),
-                'detail_url'  => route('pertandingan.show', $p->id),
-            ];
-        });
-
-    return response()->json([
-        'matches'   => $matches,
-        'timestamp' => now()->toIso8601String(),
-    ]);
-})->name('api.live-matches');
+Route::get('/api/live-matches', [PertandinganController::class, 'apiLiveMatches'])->name('api.live-matches');
 
 // API Polling — dipakai halaman bracket publik untuk update real-time
-Route::get('/api/tournament/{tournament}/matches', function (\App\Models\Tournament $tournament) {
-    $matches = $tournament->pertandingans()
-        ->with(['teamA', 'teamB', 'winner'])
-        ->get()
-        ->map(function ($m) {
-            return [
-                'id'         => $m->id,
-                'round'      => $m->round,
-                'babak'      => $m->babak,
-                'status'     => $m->status,
-                'score_a'    => $m->score_a,
-                'score_b'    => $m->score_b,
-                'team_a'     => $m->teamA?->name ?? 'TBD',
-                'team_b'     => $m->teamB?->name ?? 'TBD',
-                'team_a_id'  => $m->team_a_id,
-                'team_b_id'  => $m->team_b_id,
-                'winner_id'  => $m->winner_id,
-            ];
-        });
-
-    return response()->json(['matches' => $matches, 'timestamp' => now()->toIso8601String()]);
-})->name('api.tournament.matches');
+Route::get('/api/tournament/{tournament}/matches', [CustomBracketController::class, 'apiTournamentMatches'])->name('api.tournament.matches');
 
 // Jalur Autentikasi
 Route::middleware(['guest', PreventBackHistory::class])->group(function () {
@@ -80,8 +30,8 @@ Route::middleware(['auth', PreventBackHistory::class])->group(function () {
     Route::get('/admin', [PertandinganController::class, 'adminDashboard'])->name('admin.index');
     Route::get('/admin/skor', [PertandinganController::class, 'manageScore'])->name('admin.skor');
     Route::post('/admin/store', [PertandinganController::class, 'store'])->name('pertandingan.store');
-    Route::post('/admin/bracket/{tournament}/reroll', [PertandinganController::class, 'rerollBracket'])->name('admin.bracket.reroll');
-    Route::delete('/admin/tournament/{tournament}', [PertandinganController::class, 'deleteTournament'])->name('admin.tournament.delete');
+    Route::post('/admin/bracket/{tournament}/reroll', [CustomBracketController::class, 'rerollBracket'])->name('admin.bracket.reroll');
+    Route::delete('/admin/tournament/{tournament}', [CustomBracketController::class, 'deleteTournament'])->name('admin.tournament.delete');
     Route::patch('/admin/pertandingan/{pertandingan}/quick-update', [PertandinganController::class, 'quickUpdate'])->name('pertandingan.quick-update');
     Route::post('/admin/pertandingan/bulk-live', [PertandinganController::class, 'bulkLive'])->name('pertandingan.bulk-live');
     Route::patch('/pertandingan/{pertandingan}/update-score', [PertandinganController::class, 'updateScore']);
