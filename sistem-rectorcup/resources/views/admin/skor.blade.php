@@ -246,10 +246,11 @@
             @endforeach
         @endif
 
-        <div class="col-12 mt-5 mb-4">
+        {{-- Aktivasi Jadwal Turnamen (Grouped) --}}
+        <div class="col-12 mt-4 mb-3">
             <div class="d-flex align-items-center">
-                <h5 class="text-white font-weight-bold mb-0 mr-3">AKTIVASI JADWAL (GROUPED)</h5>
-                <div class="flex-grow-1 border-bottom border-secondary" style="opacity: 0.1;"></div>
+                <h5 class="text-white font-weight-bold mb-0 mr-3"><i class="bi bi-diagram-3 text-primary mr-2"></i> Jadwal Turnamen</h5>
+                <div class="flex-grow-1 border-bottom border-secondary" style="opacity: 0.15;"></div>
             </div>
         </div>
 
@@ -259,14 +260,13 @@
             @endphp
             @if($tMatches->isNotEmpty())
                 <div class="col-12 mb-4">
-                    <div class="card border-0" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px;">
-                        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                    <div class="card border-0" style="background: rgba(255,255,255,0.02); border-radius: 20px;">
+                        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
                             <div class="d-flex align-items-center">
-                                <div class="bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center mr-3"
-                                    style="width: 32px; height: 32px; background: linear-gradient(135deg, #6366f1, #a855f7) !important;">
-                                    <i class="bi {{ $tournament->sport->icon ?? 'bi-diagram-3' }} text-white small"></i>
-                                </div>
-                                <h6 class="text-white font-weight-bold mb-0">{{ $tournament->name }} <span class="text-muted small ml-2">{{ $tournament->sport->nama_sport }}</span></h6>
+                                <h6 class="text-white font-weight-bold mb-0">{{ $tournament->name }}</h6>
+                                <span class="badge ml-3 px-3 py-1" style="background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 8px; font-weight: 500;">
+                                    <i class="bi {{ $tournament->sport->icon ?? 'bi-trophy' }} mr-1"></i> {{ $tournament->sport->nama_sport }}
+                                </span>
                             </div>
                         </div>
                         <div class="card-body p-0">
@@ -274,28 +274,30 @@
                                 <table class="table mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Babak</th>
-                                            <th>Waktu</th>
-                                            <th>Pertandingan</th>
-                                            <th class="text-center">Aksi</th>
+                                            <th>BABAK</th>
+                                            <th>WAKTU</th>
+                                            <th>PERTANDINGAN</th>
+                                            <th class="text-center">AKSI</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($tMatches as $p)
                                             <tr data-match-id="{{ $p->id }}">
-                                                <td class="small text-muted align-middle">{{ $p->babak }}</td>
-                                                <td class="align-middle">
-                                                    <div class="text-white small font-weight-bold">{{ $p->waktu_tanding->format('H:i') }}</div>
-                                                    <div class="text-muted small">{{ $p->waktu_tanding->format('d M') }}</div>
+                                                <td>
+                                                    <span class="font-weight-600 text-muted small">{{ strtoupper($p->babak) }}</span>
                                                 </td>
-                                                <td class="align-middle">
+                                                <td>
+                                                    <div class="text-white small font-weight-bold">{{ $p->waktu_tanding->format('d M, H:i') }}</div>
+                                                </td>
+                                                <td>
                                                     <div class="font-weight-600 text-uppercase small text-white">
                                                         {{ $p->teamA?->name ?? 'TBD' }} <span class="text-muted mx-2">VS</span> {{ $p->teamB?->name ?? 'TBD' }}
                                                     </div>
                                                 </td>
-                                                <td class="text-center align-middle">
-                                                    <button class="btn btn-sm btn-success rounded-pill px-4 shadow-sm font-weight-bold"
-                                                        data-toggle="modal" data-target="#quickLive{{ $p->id }}">
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-warning rounded-pill px-4 font-weight-bold"
+                                                        data-toggle="modal" data-target="#quickLive{{ $p->id }}"
+                                                        style="background: #eab308; border-color: #eab308; color: #1e293b;">
                                                         Mulai Live
                                                     </button>
                                                 </td>
@@ -310,46 +312,57 @@
             @endif
         @endforeach
 
+        {{-- Aktivasi Jadwal Mandiri --}}
         @php 
             $iMatches = $groupedMatches->get('independent', collect())->where('status', 'scheduled');
         @endphp
         @if($iMatches->isNotEmpty())
-            <div class="col-12 mb-4">
-                <div class="card border-0" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px;">
-                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
-                        <h6 class="text-white font-weight-bold mb-0"><i class="bi bi-calendar-event mr-2"></i> Pertandingan Mandiri</h6>
-                    </div>
+            <div class="col-12 mt-4 mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="text-white font-weight-bold mb-0 mr-3"><i class="bi bi-calendar-event text-primary mr-2"></i> Pertandingan Mandiri</h5>
+                    <div class="flex-grow-1 border-bottom border-secondary" style="opacity: 0.15;"></div>
+                </div>
+
+                <div class="card border-0" style="background: rgba(255,255,255,0.02); border-radius: 20px;">
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Sport</th>
-                                        <th>Waktu</th>
-                                        <th>Pertandingan</th>
-                                        <th class="text-center">Aksi</th>
+                                        <th>SPORT</th>
+                                        <th>WAKTU</th>
+                                        <th>PERTANDINGAN</th>
+                                        <th>STATUS</th>
+                                        <th class="text-center">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($iMatches as $p)
                                         <tr data-match-id="{{ $p->id }}">
-                                            <td class="align-middle">
-                                                <span class="badge px-3 py-1" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); border-radius: 8px; font-weight: 600;">
-                                                    {{ $p->sport->nama_sport ?? 'Tournament' }}
-                                                </span>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center mr-3"
+                                                        style="width: 32px; height: 32px; background: rgba(99, 102, 241, 0.1) !important;">
+                                                        <i class="bi {{ $p->sport->icon ?? 'bi-trophy' }} text-primary small"></i>
+                                                    </div>
+                                                    <span class="font-weight-600">{{ $p->sport->nama_sport ?? 'Tournament' }}</span>
+                                                </div>
                                             </td>
-                                            <td class="align-middle">
-                                                <div class="text-white small font-weight-bold">{{ $p->waktu_tanding->format('H:i') }}</div>
-                                                <div class="text-muted small">{{ $p->waktu_tanding->format('d M') }}</div>
+                                            <td>
+                                                <div class="text-white small font-weight-bold">{{ $p->waktu_tanding->format('d M, H:i') }}</div>
                                             </td>
-                                            <td class="align-middle">
+                                            <td>
                                                 <div class="font-weight-600 text-uppercase small text-white">
                                                     {{ $p->teamA?->name ?? 'TBD' }} <span class="text-muted mx-2">VS</span> {{ $p->teamB?->name ?? 'TBD' }}
                                                 </div>
                                             </td>
-                                            <td class="text-center align-middle">
-                                                <button class="btn btn-sm btn-success rounded-pill px-4 shadow-sm font-weight-bold"
-                                                    data-toggle="modal" data-target="#quickLive{{ $p->id }}">
+                                            <td>
+                                                <span class="badge badge-dark px-3 py-1">SCHEDULED</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-warning rounded-pill px-4 font-weight-bold"
+                                                    data-toggle="modal" data-target="#quickLive{{ $p->id }}"
+                                                    style="background: #eab308; border-color: #eab308; color: #1e293b;">
                                                     Mulai Live
                                                 </button>
                                             </td>
