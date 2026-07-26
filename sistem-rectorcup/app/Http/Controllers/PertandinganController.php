@@ -185,6 +185,25 @@ class PertandinganController extends Controller
 
     public function store(Request $request)
     {
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'sport_id' => 'required|exists:sports,id',
+            'team_a' => 'required|exists:teams,id',
+            'team_b' => 'required|exists:teams,id|different:team_a',
+            'waktu' => 'required|date',
+            'lokasi' => 'required|string|max:255',
+        ], [
+            'sport_id.required' => 'Data tidak lengkap: Cabang olahraga harus dipilih.',
+            'team_a.required' => 'Data tidak lengkap: Tim A harus dipilih.',
+            'team_b.required' => 'Data tidak lengkap: Tim B harus dipilih.',
+            'team_b.different' => 'Tim B tidak boleh sama dengan Tim A.',
+            'waktu.required' => 'Data tidak lengkap: Waktu tanding harus diisi.',
+            'lokasi.required' => 'Data tidak lengkap: Lokasi pertandingan harus diisi.',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->with('error', $validator->errors()->first());
+        }
+
         $pertandingan = Pertandingan::create([
             'sport_id' => $request->sport_id,
             'team_a_id' => $request->team_a,
