@@ -115,7 +115,7 @@ class CustomBracketController extends Controller
             $this->createBracketMatches($tournament, $request->sport_id, $bracketSize, $numRounds, $request->arrangement, $request->keterangan, $formatTanding, $lokasi);
 
             return redirect()->route('admin.tournament.bracket.view', $tournament)
-                ->with('success', 'Bracket berhasil di-generate! 🎉');
+                ->with('success', 'Bracket berhasil di-generate!');
         });
     }
 

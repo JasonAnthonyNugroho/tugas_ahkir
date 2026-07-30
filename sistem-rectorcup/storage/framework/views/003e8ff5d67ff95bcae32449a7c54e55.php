@@ -276,16 +276,16 @@
                                 <table class="table mb-0">
                                     <thead>
                                         <tr>
-                                            <th style="padding-left: 24px;">BABAK</th>
+                                            <th>BABAK</th>
                                             <th>WAKTU</th>
                                             <th>PERTANDINGAN</th>
-                                            <th class="text-center" style="padding-right: 24px;">AKSI</th>
+                                            <th class="text-center">AKSI</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php $__currentLoopData = $tMatches; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                             <tr data-match-id="<?php echo e($p->id); ?>">
-                                                <td style="padding-left: 24px;">
+                                                <td>
                                                     <span class="font-weight-600 text-muted small"><?php echo e(strtoupper($p->babak)); ?></span>
                                                 </td>
                                                 <td>
@@ -297,7 +297,7 @@
 
                                                     </div>
                                                 </td>
-                                                <td class="text-center" style="padding-right: 24px;">
+                                                <td class="text-center">
                                                     <button class="btn btn-sm btn-warning rounded-pill px-4 font-weight-bold"
                                                         data-toggle="modal" data-target="#quickLive<?php echo e($p->id); ?>"
                                                         style="background: #eab308; border-color: #eab308; color: #1e293b;">
@@ -332,17 +332,17 @@
                             <table class="table mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="padding-left: 24px;">SPORT</th>
+                                        <th>SPORT</th>
                                         <th>WAKTU</th>
                                         <th>PERTANDINGAN</th>
                                         <th>STATUS</th>
-                                        <th class="text-center" style="padding-right: 24px;">AKSI</th>
+                                        <th class="text-center">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php $__currentLoopData = $iMatches; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr data-match-id="<?php echo e($p->id); ?>">
-                                            <td style="padding-left: 24px;">
+                                            <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center mr-3"
                                                         style="width: 32px; height: 32px; background: rgba(99, 102, 241, 0.1) !important;">
@@ -363,7 +363,7 @@
                                             <td>
                                                 <span class="badge badge-dark px-3 py-1">SCHEDULED</span>
                                             </td>
-                                            <td class="text-center" style="padding-right: 24px;">
+                                            <td class="text-center">
                                                 <button class="btn btn-sm btn-warning rounded-pill px-4 font-weight-bold"
                                                     data-toggle="modal" data-target="#quickLive<?php echo e($p->id); ?>"
                                                     style="background: #eab308; border-color: #eab308; color: #1e293b;">

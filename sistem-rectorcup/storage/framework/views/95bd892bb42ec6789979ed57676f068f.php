@@ -405,19 +405,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(() => setStatus(false));
     }
 
-    // Start polling every 5 seconds
     poll();
-    pollInterval = setInterval(poll, 5000);
-
-    // Pause polling when tab is hidden to save resources
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            clearInterval(pollInterval);
-        } else {
-            poll(); // immediate poll on tab focus
-            pollInterval = setInterval(poll, 5000);
-        }
-    });
+    
+    if (typeof Echo !== 'undefined') {
+        Echo.channel('scores')
+            .listen('.score.updated', function(e) {
+                poll();
+            });
+    }
 });
 </script>
 <style>
