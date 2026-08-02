@@ -71,6 +71,13 @@ class PertandinganController extends Controller
 
     public function quickUpdate(Request $request, Pertandingan $pertandingan)
     {
+        if ($request->filled('tanggal_match')) {
+            $jam = sprintf('%02d', (int)($request->jam_match ?? 9));
+            $menit = sprintf('%02d', (int)($request->menit_match ?? 0));
+            $waktu = $request->tanggal_match . ' ' . $jam . ':' . $menit . ':00';
+            $request->merge(['waktu_tanding' => $waktu, 'waktu' => $waktu]);
+        }
+
         $request->validate([
             'waktu_tanding' => 'nullable|date',
             'lokasi' => 'nullable|string',
@@ -185,6 +192,13 @@ class PertandinganController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->filled('tanggal_match')) {
+            $jam = sprintf('%02d', (int)($request->jam_match ?? 9));
+            $menit = sprintf('%02d', (int)($request->menit_match ?? 0));
+            $waktu = $request->tanggal_match . ' ' . $jam . ':' . $menit . ':00';
+            $request->merge(['waktu' => $waktu, 'waktu_tanding' => $waktu]);
+        }
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'sport_id' => 'required|exists:sports,id',
             'team_a' => 'required|exists:teams,id',
@@ -455,6 +469,13 @@ class PertandinganController extends Controller
 
     public function update(Request $request, Pertandingan $pertandingan)
     {
+        if ($request->filled('tanggal_match')) {
+            $jam = sprintf('%02d', (int)($request->jam_match ?? 9));
+            $menit = sprintf('%02d', (int)($request->menit_match ?? 0));
+            $waktu = $request->tanggal_match . ' ' . $jam . ':' . $menit . ':00';
+            $request->merge(['waktu_tanding' => $waktu, 'waktu' => $waktu]);
+        }
+
         $request->validate([
             'sport_id' => 'required|exists:sports,id',
             'team_a_id' => 'nullable|exists:teams,id',

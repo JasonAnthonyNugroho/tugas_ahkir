@@ -435,13 +435,49 @@
                                 <span>Jadwal & Lokasi</span>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="dash-label"><i class="bi bi-calendar-event mr-1"></i> Waktu Tanding <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" name="waktu" class="dash-input" required>
+                                
+                                <div class="col-12 col-md-6 mb-3">
+                                    <label class="dash-label">
+                                        <i class="bi bi-calendar3 mr-1 text-primary"></i> Tanggal Pertandingan <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="date" name="tanggal_match" id="tambah_tanggal" class="dash-input" required value="<?php echo e(date('Y-m-d')); ?>" onclick="this.showPicker ? this.showPicker() : null" style="min-height: 48px; font-size: 0.95rem; cursor: pointer;">
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="dash-label"><i class="bi bi-geo-alt mr-1"></i> Lokasi / GOR <span class="text-danger">*</span></label>
-                                    <input type="text" name="lokasi" class="dash-input" placeholder="Contoh: GOR UKDW" required>
+
+                                
+                                <div class="col-12 col-md-6 mb-3">
+                                    <label class="dash-label">
+                                        <i class="bi bi-clock mr-1 text-primary"></i> Jam Tanding (Format 24 Jam) <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="d-flex align-items-center" style="gap: 8px;">
+                                        <div class="flex-grow-1">
+                                            <select name="jam_match" id="tambah_jam" class="dash-input font-weight-bold" required style="min-height: 48px; font-size: 0.95rem;">
+                                                <?php for($h = 0; $h < 24; $h++): ?>
+                                                    <?php $hh = sprintf('%02d', $h); ?>
+                                                    <option value="<?php echo e($hh); ?>" <?php echo e($hh == '09' ? 'selected' : ''); ?>>
+                                                        Jam <?php echo e($hh); ?>
+
+                                                    </option>
+                                                <?php endfor; ?>
+                                            </select>
+                                        </div>
+                                        <span class="font-weight-bold text-muted px-1" style="font-size: 1.2rem;">:</span>
+                                        <div style="width: 120px; flex-shrink: 0;">
+                                            <input type="number" name="menit_match" id="tambah_menit" class="dash-input text-center font-weight-bold" min="0" max="59" step="1" placeholder="00" value="00" required style="min-height: 48px; font-size: 0.95rem;">
+                                        </div>
+                                        <span class="small font-weight-bold text-muted ml-1">WIB</span>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block" style="font-size: 0.72rem;">
+                                        Pilih jam (00–23) dan ketik menit bebas (00–59).
+                                    </small>
+                                </div>
+
+                                
+                                <input type="hidden" name="waktu" id="tambah_waktu_final">
+
+                                
+                                <div class="col-12 mb-3">
+                                    <label class="dash-label"><i class="bi bi-geo-alt mr-1 text-primary"></i> Lokasi / GOR <span class="text-danger">*</span></label>
+                                    <input type="text" name="lokasi" class="dash-input" placeholder="Contoh: GOR UKDW / Lapangan Basket" required style="min-height: 48px; font-size: 0.95rem;">
                                 </div>
                             </div>
                         </div>
@@ -1413,8 +1449,17 @@
         background-size: 16px;
         padding-right: 36px;
     }
-    .dash-input[type="date"], .dash-input[type="datetime-local"] {
+    .dash-input[type="date"], .dash-input[type="datetime-local"], select.dash-input, select.form-control {
         color-scheme: dark;
+        cursor: pointer;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.9);
+        cursor: pointer;
+        opacity: 0.8;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
     }
     .dash-hint {
         display: block;
@@ -1616,6 +1661,45 @@
             }
             
             $(document).ready(function () {
+                // Helper Sinkronisasi Waktu Tambah Jadwal
+                function updateTambahWaktu() {
+                    const t = document.getElementById('tambah_tanggal');
+                    const j = document.getElementById('tambah_jam');
+                    const m = document.getElementById('tambah_menit');
+                    const f = document.getElementById('tambah_waktu_final');
+                    if (t && j && m && f) {
+                        const menitPadded = String(m.value || '0').padStart(2, '0');
+                        f.value = `${t.value} ${j.value}:${menitPadded}:00`;
+                    }
+                }
+                $('#tambah_tanggal, #tambah_jam, #tambah_menit').on('change input', updateTambahWaktu);
+                updateTambahWaktu();
+
+                // Helper Sinkronisasi Waktu Edit Pertandingan
+                function updateEditWaktu(id) {
+                    const t = document.getElementById('edit_tanggal_' + id);
+                    const j = document.getElementById('edit_jam_' + id);
+                    const m = document.getElementById('edit_menit_' + id);
+                    const f = document.getElementById('edit_waktu_final_' + id);
+                    if (t && j && m && f) {
+                        const menitPadded = String(m.value || '0').padStart(2, '0');
+                        f.value = `${t.value} ${j.value}:${menitPadded}:00`;
+                    }
+                }
+                $('.edit-tanggal-match, .edit-jam-match, .edit-menit-match').on('change input', function() {
+                    const matchId = this.id.split('_').pop();
+                    updateEditWaktu(matchId);
+                });
+
+                // Pastikan nilai waktu tersinkronisasi sebelum submit form apapun
+                $('form').on('submit', function() {
+                    updateTambahWaktu();
+                    $('.edit-tanggal-match').each(function() {
+                        const matchId = this.id.split('_').pop();
+                        updateEditWaktu(matchId);
+                    });
+                });
+
                 const selprodiId = "<?php echo e(\App\Models\Team::where('name', 'Seluruh Prodi')->first()->id ?? ''); ?>";
                 $('#sportSelect').on('change', function () {
                     const selectedSport = $(this).find(':selected').data('nama');
@@ -1826,11 +1910,50 @@
                                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                     </select>
                                 </div>
-                                <div class="col-md-6 mb-4">
-                                    <label class="small font-weight-bold text-uppercase text-muted mb-2">Waktu Tanding</label>
-                                    <input type="datetime-local" name="waktu_tanding" class="form-control" 
-                                        value="<?php echo e($p->waktu_tanding ? \Carbon\Carbon::parse($p->waktu_tanding)->format('Y-m-d\TH:i') : ''); ?>" required>
+                                
+                                <div class="col-12 col-md-6 mb-4">
+                                    <label class="small font-weight-bold text-uppercase text-muted mb-2">
+                                        <i class="bi bi-calendar3 mr-1 text-primary"></i> Tanggal Pertandingan
+                                    </label>
+                                    <input type="date" name="tanggal_match" id="edit_tanggal_<?php echo e($p->id); ?>" class="form-control edit-tanggal-match" 
+                                        value="<?php echo e($p->waktu_tanding ? \Carbon\Carbon::parse($p->waktu_tanding)->format('Y-m-d') : date('Y-m-d')); ?>" 
+                                        onclick="this.showPicker ? this.showPicker() : null" required style="min-height: 48px; font-size: 0.95rem; cursor: pointer;">
                                 </div>
+
+                                
+                                <div class="col-12 col-md-6 mb-4">
+                                    <label class="small font-weight-bold text-uppercase text-muted mb-2">
+                                        <i class="bi bi-clock mr-1 text-primary"></i> Jam Tanding (Format 24 Jam)
+                                    </label>
+                                    <?php
+                                        $curH = $p->waktu_tanding ? \Carbon\Carbon::parse($p->waktu_tanding)->format('H') : '09';
+                                        $curM = $p->waktu_tanding ? \Carbon\Carbon::parse($p->waktu_tanding)->format('i') : '00';
+                                    ?>
+                                    <div class="d-flex align-items-center" style="gap: 8px;">
+                                        <div class="flex-grow-1">
+                                            <select name="jam_match" id="edit_jam_<?php echo e($p->id); ?>" class="form-control edit-jam-match font-weight-bold" required style="min-height: 48px; font-size: 0.92rem;">
+                                                <?php for($h = 0; $h < 24; $h++): ?>
+                                                    <?php $hh = sprintf('%02d', $h); ?>
+                                                    <option value="<?php echo e($hh); ?>" <?php echo e($curH == $hh ? 'selected' : ''); ?>>
+                                                        Jam <?php echo e($hh); ?>
+
+                                                    </option>
+                                                <?php endfor; ?>
+                                            </select>
+                                        </div>
+                                        <span class="font-weight-bold text-muted px-1" style="font-size: 1.2rem;">:</span>
+                                        <div style="width: 120px; flex-shrink: 0;">
+                                            <input type="number" name="menit_match" id="edit_menit_<?php echo e($p->id); ?>" class="form-control edit-menit-match text-center font-weight-bold" min="0" max="59" step="1" placeholder="00" value="<?php echo e($curM); ?>" required style="min-height: 48px; font-size: 0.92rem;">
+                                        </div>
+                                        <span class="small font-weight-bold text-muted ml-1">WIB</span>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block" style="font-size: 0.72rem;">
+                                        Pilih jam (00–23) dan ketik menit bebas (00–59).
+                                    </small>
+                                </div>
+
+                                
+                                <input type="hidden" name="waktu_tanding" id="edit_waktu_final_<?php echo e($p->id); ?>" value="<?php echo e($p->waktu_tanding ? \Carbon\Carbon::parse($p->waktu_tanding)->format('Y-m-d H:i:s') : ''); ?>">
                                 <div class="col-md-6 mb-4">
                                     <label class="small font-weight-bold text-uppercase text-muted mb-2">Lokasi / GOR</label>
                                     <input type="text" name="lokasi" class="form-control" 

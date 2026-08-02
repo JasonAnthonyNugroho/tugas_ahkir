@@ -12,6 +12,9 @@
     {{-- CDN Real-time (Laravel Reverb) --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pusher/8.3.0/pusher.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+    {{-- CDN Flatpickr (Custom Date & Time Picker 24 Jam) --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 
     <script>
         // Inisialisasi Laravel Echo (wrapped in try-catch — non-critical, polling is primary)

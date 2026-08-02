@@ -319,16 +319,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     poll();
-    pollInterval = setInterval(poll, 5000);
 
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            clearInterval(pollInterval);
-        } else {
-            poll();
-            pollInterval = setInterval(poll, 5000);
-        }
-    });
+    if (typeof Echo !== 'undefined') {
+        Echo.channel('scores')
+            .listen('.score.updated', function(e) {
+                poll();
+            });
+    }
 });
 </script>
 <?php $__env->stopSection(); ?>
