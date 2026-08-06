@@ -112,7 +112,13 @@
                                     </div>
                                     <div>
                                         <h6 class="font-weight-bold text-white mb-0"><?php echo e($tournament->name); ?></h6>
-                                        <small class="text-muted"><?php echo e($tournament->sport->nama_sport); ?> &bull; <?php echo e($tournament->year); ?></small>
+                                        <small class="text-muted">
+                                            <?php echo e($tournament->sport->nama_sport); ?> &bull; <?php echo e($tournament->year); ?>
+
+                                            <?php if($tournament->start_date): ?>
+                                                &bull; <span class="text-info font-weight-bold">Dimulai <?php echo e(\Carbon\Carbon::parse($tournament->start_date)->format('d M Y')); ?></span>
+                                            <?php endif; ?>
+                                        </small>
                                     </div>
                                 </div>
                                 
@@ -220,13 +226,21 @@
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-calendar3 mr-2 text-primary"></i>
-                                            <?php echo e(\Carbon\Carbon::parse($p->waktu_tanding)->format('d M, H:i')); ?>
+                                            <?php if($p->waktu_tanding): ?>
+                                                <?php echo e(\Carbon\Carbon::parse($p->waktu_tanding)->format('d M, H:i')); ?>
 
+                                            <?php else: ?>
+                                                <span class="text-muted">TBS</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <span class="badge badge-info px-3 py-2" style="border-radius: 100px; font-size: 0.75rem;">
-                                        <?php echo e(\Carbon\Carbon::parse($p->waktu_tanding)->diffForHumans()); ?>
+                                        <?php if($p->waktu_tanding): ?>
+                                            <?php echo e(\Carbon\Carbon::parse($p->waktu_tanding)->diffForHumans()); ?>
 
+                                        <?php else: ?>
+                                            TBS
+                                        <?php endif; ?>
                                     </span>
                                 </div>
                             </div>

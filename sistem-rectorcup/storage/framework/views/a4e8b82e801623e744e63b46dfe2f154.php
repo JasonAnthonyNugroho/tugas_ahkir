@@ -56,10 +56,6 @@
                         <label class="bb-label"><i class="bi bi-calendar-event mr-1"></i>Tanggal Mulai</label>
                         <input type="date" name="start_date" id="startDate" class="bb-input" required>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="bb-label"><i class="bi bi-calendar-check mr-1"></i>Tanggal Selesai</label>
-                        <input type="date" name="end_date" id="endDate" class="bb-input" required>
-                    </div>
                     <div class="col-12 mb-1">
                         <label class="bb-label">
                             <i class="bi bi-table mr-1"></i>Link Google Sheet Skor <span class="text-muted">(opsional)</span>
@@ -630,16 +626,15 @@ function updateUI() {
     const sportOk  = !!document.querySelector('input[name="sport_id"]:checked');
     const nameOk   = !!document.querySelector('input[name="tournament_name"]').value.trim();
     const startOk  = !!document.getElementById('startDate').value;
-    const endOk    = !!document.getElementById('endDate').value;
     const teamsOk  = n === size;
 
     if (!nameOk)            status.textContent = 'Isi nama tournament dulu';
     else if (!sportOk)      status.textContent = 'Pilih cabang olahraga';
-    else if (!startOk || !endOk) status.textContent = 'Lengkapi tanggal turnamen';
+    else if (!startOk)      status.textContent = 'Pilih tanggal mulai turnamen';
     else if (!teamsOk)      status.textContent = `Pilih ${size - n} tim lagi`;
     else                    status.textContent = '✓ Siap lanjut atur bracket';
 
-    btn.disabled = !(nameOk && sportOk && startOk && endOk && teamsOk);
+    btn.disabled = !(nameOk && sportOk && startOk && teamsOk);
 }
 
 /* Listeners */
@@ -661,13 +656,8 @@ document.querySelectorAll('input[name="bracket_size"]').forEach(r => {
     });
 });
 
-document.querySelectorAll('input[name="sport_id"], input[name="tournament_name"], #startDate, #endDate')
+document.querySelectorAll('input[name="sport_id"], input[name="tournament_name"], #startDate')
     .forEach(el => el.addEventListener('input', updateUI));
-
-/* Date validation: end >= start */
-document.getElementById('startDate').addEventListener('change', function() {
-    document.getElementById('endDate').min = this.value;
-});
 
 /* Submit: inject team_ids hidden inputs */
 document.getElementById('bracketConfigForm').addEventListener('submit', function(e) {

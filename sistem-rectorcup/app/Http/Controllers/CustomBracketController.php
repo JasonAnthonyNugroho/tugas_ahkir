@@ -39,7 +39,7 @@ class CustomBracketController extends Controller
             'team_ids'           => 'required|array|min:2',
             'team_ids.*'         => 'exists:teams,id',
             'start_date'         => 'required|date',
-            'end_date'           => 'required|date|after_or_equal:start_date',
+            'end_date'           => 'nullable|date',
             'external_score_url' => 'nullable|url|max:500',
             'format_tanding'     => 'nullable|in:BO1,BO3',
             'lokasi'             => 'nullable|string|max:255',
@@ -57,7 +57,7 @@ class CustomBracketController extends Controller
             'keterangan'       => $request->keterangan,
             'lokasi'           => $request->lokasi,
             'startDate'        => $request->start_date,
-            'endDate'          => $request->end_date,
+            'endDate'          => $request->end_date ?? $request->start_date,
             'externalScoreUrl' => $request->external_score_url,
             'formatTanding'    => $request->format_tanding ?? 'BO1',
             'sport'            => $sport,
@@ -84,7 +84,7 @@ class CustomBracketController extends Controller
             'keterangan'         => 'nullable|string|max:500',
             'lokasi'             => 'nullable|string|max:255',
             'start_date'         => 'required|date',
-            'end_date'           => 'required|date|after_or_equal:start_date',
+            'end_date'           => 'nullable|date',
             'external_score_url' => 'nullable|url|max:500',
             'format_tanding'     => 'nullable|in:BO1,BO3',
         ]);
@@ -98,7 +98,7 @@ class CustomBracketController extends Controller
                 'is_active'          => true,
                 'year'               => date('Y'),
                 'start_date'         => $request->start_date,
-                'end_date'           => $request->end_date,
+                'end_date'           => $request->end_date ?? $request->start_date,
                 'external_score_url' => $request->external_score_url,
             ]);
 
@@ -155,32 +155,19 @@ class CustomBracketController extends Controller
 
 
     /**
-     * Create actual matches di database dengan distribusi tanggal
+     * Create actual matches di database dengan tanggal awal tournament
      */
     private function createBracketMatches($tournament, $sportId, $bracketSize, $numRounds, $arrangement, $keterangan, $formatTanding = 'BO1', $lokasi = 'TBA')
     {
         $roundMatches = [];
         
-        // Parse tanggal tournament
+        // Parse tanggal mulai tournament
         $startDate = \Carbon\Carbon::parse($tournament->start_date);
-        $endDate = \Carbon\Carbon::parse($tournament->end_date);
-        $totalDays = $startDate->diffInDays($endDate); // start → end = positif
-        
-        // Distribusi: Round 1 = start_date, Final = end_date
-        // daysPerRound dihitung dari selisih total dibagi jumlah interval antar round
-        $daysPerRound = $numRounds > 1 ? $totalDays / ($numRounds - 1) : 0;
 
         // Buat matches dari Final ke Round 1 (loop terbalik untuk resolve next_match_id)
         for ($round = $numRounds; $round >= 1; $round--) {
             $numMatches = $bracketSize / pow(2, $round);
             $roundMatches[$round] = [];
-            
-            // FIX: offset dihitung dari round terkecil (round 1 = day 0)
-            // round 1 → offset 0 → start_date
-            // round 2 → offset 1 * daysPerRound
-            // round N (final) → offset (N-1) * daysPerRound → end_date
-            $dayOffset = ($round - 1) * $daysPerRound;
-            $roundDate = $startDate->copy()->addDays($dayOffset);
 
             for ($matchNum = 1; $matchNum <= $numMatches; $matchNum++) {
                 $nextMatch = null;
@@ -191,7 +178,7 @@ class CustomBracketController extends Controller
                 
                 // Offset jam: match 1 = 09:00, match 2 = 13:00, match 3 = 17:00, dst
                 $matchHour = 9 + (($matchNum - 1) % 3) * 4;
-                $matchDateTime = $roundDate->copy()->setTime($matchHour, 0);
+                $matchDateTime = $startDate->copy()->setTime($matchHour, 0);
 
                 $match = Pertandingan::create([
                     'sport_id'      => $sportId,
@@ -224,7 +211,6 @@ class CustomBracketController extends Controller
         }
 
         // Buat match Perebutan Juara 3 jika ada minimal 4 tim
-        // FIX: pakai end_date tournament, bukan now()
         if ($bracketSize >= 4) {
             Pertandingan::create([
                 'sport_id'      => $sportId,
@@ -235,8 +221,8 @@ class CustomBracketController extends Controller
                 'status'        => 'scheduled',
                 'babak'         => 'Perebutan Juara 3',
                 'format_tanding'=> $formatTanding,
-                'waktu_tanding' => $endDate->copy()->setTime(9, 0),
-                'match_date'    => $endDate->copy()->setTime(9, 0),
+                'waktu_tanding' => $startDate->copy()->setTime(9, 0),
+                'match_date'    => $startDate->copy()->setTime(9, 0),
                 'lokasi'        => $lokasi,
                 'keterangan'    => $keterangan,
             ]);
@@ -268,14 +254,14 @@ class CustomBracketController extends Controller
         $request->validate([
             'name'       => 'required|string|max:255',
             'start_date' => 'nullable|date',
-            'end_date'   => 'nullable|date|after_or_equal:start_date',
+            'end_date'   => 'nullable|date',
             'lokasi'     => 'nullable|string|max:255',
         ]);
 
         $tournament->update([
             'name'       => $request->name,
             'start_date' => $request->start_date,
-            'end_date'   => $request->end_date,
+            'end_date'   => $request->end_date ?? $request->start_date,
         ]);
 
         // Update lokasi di semua pertandingan turnamen ini

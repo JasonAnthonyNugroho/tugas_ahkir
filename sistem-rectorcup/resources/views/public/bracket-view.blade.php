@@ -21,10 +21,10 @@
                 <p class="text-muted mb-0">
                     <span class="badge badge-primary mr-2">{{ $tournament->sport->nama_sport }}</span>
                     <span class="badge badge-secondary">{{ $tournament->year }}</span>
-                    @if($tournament->start_date && $tournament->end_date)
+                    @if($tournament->start_date)
                         <span class="badge badge-info ml-2">
                             <i class="bi bi-calendar mr-1"></i>
-                            {{ \Carbon\Carbon::parse($tournament->start_date)->format('d M') }} - {{ \Carbon\Carbon::parse($tournament->end_date)->format('d M Y') }}
+                            Dimulai dari: {{ \Carbon\Carbon::parse($tournament->start_date)->format('d M Y') }}
                         </span>
                     @endif
                 </p>

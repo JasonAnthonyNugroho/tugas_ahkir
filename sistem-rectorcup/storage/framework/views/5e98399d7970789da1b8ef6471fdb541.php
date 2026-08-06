@@ -71,6 +71,12 @@
                                     <div class="tournament-card-meta">
                                         <span class="tournament-tag tournament-tag-sport"><?php echo e($tournament->sport->nama_sport); ?></span>
                                         <span class="tournament-tag tournament-tag-year"><?php echo e($tournament->year); ?></span>
+                                        <?php if($tournament->start_date): ?>
+                                            <span class="tournament-tag" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3);">
+                                                <i class="bi bi-calendar-event mr-1"></i> Mulai <?php echo e(\Carbon\Carbon::parse($tournament->start_date)->format('d M Y')); ?>
+
+                                            </span>
+                                        <?php endif; ?>
                                         <?php if($tLokasi): ?>
                                             <span class="tournament-location"><i class="bi bi-geo-alt-fill"></i> <?php echo e($tLokasi); ?></span>
                                         <?php endif; ?>

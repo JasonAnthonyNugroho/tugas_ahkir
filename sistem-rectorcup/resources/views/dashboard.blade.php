@@ -109,7 +109,12 @@
                                     </div>
                                     <div>
                                         <h6 class="font-weight-bold text-white mb-0">{{ $tournament->name }}</h6>
-                                        <small class="text-muted">{{ $tournament->sport->nama_sport }} &bull; {{ $tournament->year }}</small>
+                                        <small class="text-muted">
+                                            {{ $tournament->sport->nama_sport }} &bull; {{ $tournament->year }}
+                                            @if($tournament->start_date)
+                                                &bull; <span class="text-info font-weight-bold">Dimulai {{ \Carbon\Carbon::parse($tournament->start_date)->format('d M Y') }}</span>
+                                            @endif
+                                        </small>
                                     </div>
                                 </div>
                                 
@@ -215,11 +220,19 @@
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-calendar3 mr-2 text-primary"></i>
-                                            {{ \Carbon\Carbon::parse($p->waktu_tanding)->format('d M, H:i') }}
+                                            @if($p->waktu_tanding)
+                                                {{ \Carbon\Carbon::parse($p->waktu_tanding)->format('d M, H:i') }}
+                                            @else
+                                                <span class="text-muted">TBS</span>
+                                            @endif
                                         </div>
                                     </div>
                                     <span class="badge badge-info px-3 py-2" style="border-radius: 100px; font-size: 0.75rem;">
-                                        {{ \Carbon\Carbon::parse($p->waktu_tanding)->diffForHumans() }}
+                                        @if($p->waktu_tanding)
+                                            {{ \Carbon\Carbon::parse($p->waktu_tanding)->diffForHumans() }}
+                                        @else
+                                            TBS
+                                        @endif
                                     </span>
                                 </div>
                             </div>

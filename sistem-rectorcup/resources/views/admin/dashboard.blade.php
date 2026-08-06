@@ -71,6 +71,11 @@
                                     <div class="tournament-card-meta">
                                         <span class="tournament-tag tournament-tag-sport">{{ $tournament->sport->nama_sport }}</span>
                                         <span class="tournament-tag tournament-tag-year">{{ $tournament->year }}</span>
+                                        @if($tournament->start_date)
+                                            <span class="tournament-tag" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3);">
+                                                <i class="bi bi-calendar-event mr-1"></i> Mulai {{ \Carbon\Carbon::parse($tournament->start_date)->format('d M Y') }}
+                                            </span>
+                                        @endif
                                         @if($tLokasi)
                                             <span class="tournament-location"><i class="bi bi-geo-alt-fill"></i> {{ $tLokasi }}</span>
                                         @endif
@@ -266,15 +271,10 @@
                                             Mengubah lokasi akan update semua pertandingan di turnamen ini.
                                         </small>
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-12 mb-3">
                                         <label class="dash-label"><i class="bi bi-calendar-event mr-1"></i> Tanggal Mulai</label>
                                         <input type="date" name="start_date" class="dash-input"
                                                value="{{ $tournament->start_date ? \Carbon\Carbon::parse($tournament->start_date)->format('Y-m-d') : '' }}">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="dash-label"><i class="bi bi-calendar-check mr-1"></i> Tanggal Selesai</label>
-                                        <input type="date" name="end_date" class="dash-input"
-                                               value="{{ $tournament->end_date ? \Carbon\Carbon::parse($tournament->end_date)->format('Y-m-d') : '' }}">
                                     </div>
                                 </div>
                             </div>

@@ -104,7 +104,7 @@
     <input type="hidden" name="keterangan"      value="{{ $keterangan }}">
     <input type="hidden" name="lokasi"           value="{{ $lokasi ?? '' }}">
     <input type="hidden" name="start_date"         value="{{ $startDate }}">
-    <input type="hidden" name="end_date"           value="{{ $endDate }}">
+    <input type="hidden" name="end_date"           value="{{ $endDate ?? $startDate }}">
     <input type="hidden" name="external_score_url" value="{{ $externalScoreUrl ?? '' }}">
     <input type="hidden" name="format_tanding"     value="{{ $formatTanding ?? 'BO1' }}">
     <input type="hidden" name="arrangement"        id="formArrangement">
