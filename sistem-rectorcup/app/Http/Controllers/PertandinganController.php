@@ -268,8 +268,8 @@ class PertandinganController extends Controller
         }
 
         $request->validate([
-            'score_a'              => 'required|integer',
-            'score_b'              => 'required|integer',
+            'score_a'              => 'required|integer|min:0',
+            'score_b'              => 'required|integer|min:0',
             'status'               => 'required|string',
             'keterangan'           => 'nullable|string|max:255',
             'screenshot'           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',

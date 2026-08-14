@@ -97,7 +97,7 @@
                                                         onclick="incrementScore('score_a_<?php echo e($p->id); ?>')">
                                                         <i class="bi bi-chevron-up"></i>
                                                     </button>
-                                                    <input type="number" name="score_a" id="score_a_<?php echo e($p->id); ?>" data-match-id="<?php echo e($p->id); ?>"
+                                                    <input type="number" name="score_a" id="score_a_<?php echo e($p->id); ?>" data-match-id="<?php echo e($p->id); ?>" min="0"
                                                         class="form-control form-control-lg text-center font-weight-bold text-white bg-transparent border-0 p-0"
                                                         style="font-size: 3rem; height: auto;" value="<?php echo e($p->score_a); ?>">
                                                     <button type="button"
@@ -121,7 +121,7 @@
                                                         onclick="incrementScore('score_b_<?php echo e($p->id); ?>')">
                                                         <i class="bi bi-chevron-up"></i>
                                                     </button>
-                                                    <input type="number" name="score_b" id="score_b_<?php echo e($p->id); ?>" data-match-id="<?php echo e($p->id); ?>"
+                                                    <input type="number" name="score_b" id="score_b_<?php echo e($p->id); ?>" data-match-id="<?php echo e($p->id); ?>" min="0"
                                                         class="form-control form-control-lg text-center font-weight-bold text-white bg-transparent border-0 p-0"
                                                         style="font-size: 3rem; height: auto;" value="<?php echo e($p->score_b); ?>">
                                                     <button type="button"
@@ -579,7 +579,13 @@
                 // Initialize state on load
                 syncDownButton(inp.id);
                 
-                inp.addEventListener('input', () => syncDownButton(inp.id));
+                inp.addEventListener('input', (e) => {
+                    let val = parseInt(e.target.value);
+                    if (isNaN(val) || val < 0) {
+                        e.target.value = 0;
+                    }
+                    syncDownButton(inp.id);
+                });
             });
 
             // Update label custom-file-label saat memilih berkas
