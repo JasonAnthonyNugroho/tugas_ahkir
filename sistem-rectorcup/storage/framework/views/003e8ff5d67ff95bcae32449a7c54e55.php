@@ -87,32 +87,6 @@
 
                                 <div class="bg-dark-subtle rounded-xl p-4 mb-4"
                                     style="background: rgba(15, 23, 42, 0.3); border-radius: 20px; border: 1px solid var(--glass-border);">
-                                    <?php if(strtoupper($p->sport->nama_sport ?? '') == 'PUBG MOBILE'): ?>
-                                        <div class="text-center">
-                                            <label class="small font-weight-bold text-muted text-uppercase mb-3 d-block">Total Points
-                                                (Battle Royale)</label>
-                                            <div class="d-flex justify-content-center align-items-center">
-                                                <button type="button"
-                                                    class="btn btn-outline-primary btn-lg rounded-circle mr-3 score-btn score-btn-down"
-                                                    data-for="score_a_<?php echo e($p->id); ?>"
-                                                    onclick="decrementScore('score_a_<?php echo e($p->id); ?>')"
-                                                    <?php if($p->score_a <= 0): ?> disabled <?php endif; ?>>
-                                                    <i class="bi bi-dash-lg"></i>
-                                                </button>
-                                                <input type="number" name="score_a" id="score_a_<?php echo e($p->id); ?>" data-match-id="<?php echo e($p->id); ?>"
-                                                    class="form-control form-control-lg text-center font-weight-bold text-white bg-transparent border-0 p-0"
-                                                    style="font-size: 3.5rem; width: 100px; height: auto;" value="<?php echo e($p->score_a); ?>">
-                                                <button type="button"
-                                                    class="btn btn-outline-primary btn-lg rounded-circle ml-3 score-btn score-btn-up"
-                                                    onclick="incrementScore('score_a_<?php echo e($p->id); ?>')">
-                                                    <i class="bi bi-plus-lg"></i>
-                                                </button>
-                                                <span class="h4 text-primary mb-0 ml-3">PTS</span>
-                                            </div>
-                                            <input type="hidden" name="score_b" value="0">
-                                            <p class="text-muted small mt-2"><?php echo e($p->teamA?->name ?? 'TBD'); ?></p>
-                                        </div>
-                                    <?php else: ?>
                                         <div class="row align-items-center text-center">
                                             <div class="col-5">
                                                 <label
@@ -160,7 +134,6 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    <?php endif; ?>
                                 </div>
 
                                 
@@ -229,6 +202,7 @@
                                         <i class="bi bi-cloud-arrow-up-fill mr-2"></i> Update Skor
                                     </button>
                                     <button type="button" class="btn flex-fill font-weight-bold py-3 shadow-lg skor-btn-finish"
+                                            id="btn_finish_<?php echo e($p->id); ?>"
                                             onclick="confirmFinish(<?php echo e($p->id); ?>, '<?php echo e(addslashes($p->teamA?->name ?? 'TBD')); ?>', '<?php echo e(addslashes($p->teamB?->name ?? 'TBD')); ?>')">
                                         <i class="bi bi-flag-fill mr-2"></i> Selesaikan
                                     </button>
@@ -493,9 +467,36 @@
             transform: translateY(-1px);
             box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
         }
+        
+        .skor-btn-finish.btn-draw-disabled {
+            opacity: 0.5;
+            background: transparent;
+            border-color: #6c757d;
+            color: #6c757d;
+        }
+        .skor-btn-finish.btn-draw-disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 
     <script>
+        function syncFinishButton(matchId) {
+            const inputA = document.getElementById('score_a_' + matchId);
+            const inputB = document.getElementById('score_b_' + matchId);
+            const btnFinish = document.getElementById('btn_finish_' + matchId);
+            if (!inputA || !inputB || !btnFinish) return;
+
+            const valA = parseInt(inputA.value || 0);
+            const valB = parseInt(inputB.value || 0);
+
+            if (valA === valB) {
+                btnFinish.classList.add('btn-draw-disabled');
+            } else {
+                btnFinish.classList.remove('btn-draw-disabled');
+            }
+        }
+
         function syncDownButton(id) {
             const input = document.getElementById(id);
             if (!input) return;
@@ -503,6 +504,10 @@
             document.querySelectorAll(`.score-btn-down[data-for="${id}"]`).forEach(btn => {
                 btn.disabled = val <= 0;
             });
+            
+            // Extract matchId and sync finish button
+            const matchId = id.replace('score_a_', '').replace('score_b_', '');
+            syncFinishButton(matchId);
         }
 
         function incrementScore(id) {
@@ -521,6 +526,26 @@
         }
 
         function confirmFinish(matchId, teamA, teamB) {
+            const inputA = document.getElementById('score_a_' + matchId);
+            const inputB = document.getElementById('score_b_' + matchId);
+            const valA = parseInt(inputA ? inputA.value : 0);
+            const valB = parseInt(inputB ? inputB.value : 0);
+
+            if (valA === valB) {
+                Swal.fire({
+                    title: 'Skor Masih Seri (Draw)!',
+                    text: 'Pertandingan turnamen tidak boleh berakhir seri. Mohon tentukan pemenangnya (ubah skor) terlebih dahulu.',
+                    icon: 'warning',
+                    confirmButtonColor: '#3b82f6',
+                    confirmButtonText: 'Oke, Mengerti',
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    customClass: {
+                        popup: 'swal-dark-popup'
+                    }
+                });
+                return;
+            }
             Swal.fire({
                 title: 'Selesaikan Pertandingan?',
                 html: `<div style="margin-top:8px">
@@ -551,6 +576,9 @@
         // Sinkron saat user mengetik langsung di input
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('input[name="score_a"], input[name="score_b"]').forEach(inp => {
+                // Initialize state on load
+                syncDownButton(inp.id);
+                
                 inp.addEventListener('input', () => syncDownButton(inp.id));
             });
 

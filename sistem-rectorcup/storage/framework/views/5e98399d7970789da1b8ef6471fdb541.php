@@ -275,15 +275,10 @@
                                             Mengubah lokasi akan update semua pertandingan di turnamen ini.
                                         </small>
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-12 mb-3">
                                         <label class="dash-label"><i class="bi bi-calendar-event mr-1"></i> Tanggal Mulai</label>
                                         <input type="date" name="start_date" class="dash-input"
                                                value="<?php echo e($tournament->start_date ? \Carbon\Carbon::parse($tournament->start_date)->format('Y-m-d') : ''); ?>">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="dash-label"><i class="bi bi-calendar-check mr-1"></i> Tanggal Selesai</label>
-                                        <input type="date" name="end_date" class="dash-input"
-                                               value="<?php echo e($tournament->end_date ? \Carbon\Carbon::parse($tournament->end_date)->format('Y-m-d') : ''); ?>">
                                     </div>
                                 </div>
                             </div>
@@ -1709,15 +1704,9 @@
                 const selprodiId = "<?php echo e(\App\Models\Team::where('name', 'Seluruh Prodi')->first()->id ?? ''); ?>";
                 $('#sportSelect').on('change', function () {
                     const selectedSport = $(this).find(':selected').data('nama');
-                    if (selectedSport === 'PUBG MOBILE') {
-                        $('#teamASelect').val(selprodiId).trigger('change');
-                        $('#teamBSelect').val(selprodiId).trigger('change');
-                        $('.team-b-container').hide();
-                        $('.team-a-container label').text('Format Pertandingan');
-                    } else {
-                        $('.team-b-container').show();
-                        $('.team-a-container label').text('Tim A (Prodi)');
-                    }
+                    // PUBG Mobile logic removed.
+                    $('.team-b-container').show();
+                    $('.team-a-container label').text('Tim A (Prodi)');
                 });
             });
             

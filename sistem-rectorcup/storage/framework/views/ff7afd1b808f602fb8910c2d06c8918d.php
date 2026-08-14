@@ -131,8 +131,26 @@
 
                 
                 <?php
-                    $final = $selectedTournament->pertandingans->where('babak', 'Final')->first();
-                    $thirdPlace = $selectedTournament->pertandingans->where('babak', 'Perebutan Juara 3')->first();
+                    $final = $selectedTournament->pertandingans->filter(function($p) {
+                        return in_array($p->babak, ['Final', 'Grand Final']);
+                    })->first();
+
+                    if (!$final) {
+                        $maxRound = $selectedTournament->pertandingans
+                            ->where('match_number', '!=', 99)
+                            ->where('babak', '!=', 'Perebutan Juara 3')
+                            ->max('round');
+                        if ($maxRound) {
+                            $final = $selectedTournament->pertandingans
+                                ->where('round', $maxRound)
+                                ->where('match_number', '!=', 99)
+                                ->where('babak', '!=', 'Perebutan Juara 3')
+                                ->first();
+                        }
+                    }
+
+                    $thirdPlace = $selectedTournament->pertandingans->where('babak', 'Perebutan Juara 3')->first()
+                        ?? $selectedTournament->pertandingans->where('match_number', 99)->first();
                     
                     $juara1 = $final && $final->winner_id ? $final->winner : null;
                     $juara2 = $final && $final->winner_id ? ($final->winner_id == $final->team_a_id ? $final->teamB : $final->teamA) : null;
@@ -541,7 +559,7 @@
         .podium-1 .podium-medal { font-size: 2.8rem; }
     }
 
-    /* ── External score sheet card (cabang manual: Catur, PUBG, dll) ── */
+    /* ── External score sheet card (cabang manual: Catur, dll) ── */
     .external-score-card {
         gap: 16px;
         padding: 18px 20px;

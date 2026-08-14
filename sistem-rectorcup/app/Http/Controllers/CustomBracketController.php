@@ -237,7 +237,7 @@ class CustomBracketController extends Controller
         $diff = $totalRounds - $round;
         
         switch ($diff) {
-            case 0: return 'Grand Final';
+            case 0: return 'Final';
             case 1: return 'Semi Final';
             case 2: return 'Quarter Final';
             case 3: return 'Round of 16';

@@ -102,7 +102,7 @@
     <input type="hidden" name="keterangan"      value="<?php echo e($keterangan); ?>">
     <input type="hidden" name="lokasi"           value="<?php echo e($lokasi ?? ''); ?>">
     <input type="hidden" name="start_date"         value="<?php echo e($startDate); ?>">
-    <input type="hidden" name="end_date"           value="<?php echo e($endDate); ?>">
+    <input type="hidden" name="end_date"           value="<?php echo e($endDate ?? $startDate); ?>">
     <input type="hidden" name="external_score_url" value="<?php echo e($externalScoreUrl ?? ''); ?>">
     <input type="hidden" name="format_tanding"     value="<?php echo e($formatTanding ?? 'BO1'); ?>">
     <input type="hidden" name="arrangement"        id="formArrangement">

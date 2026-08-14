@@ -1697,15 +1697,9 @@
                 const selprodiId = "{{ \App\Models\Team::where('name', 'Seluruh Prodi')->first()->id ?? '' }}";
                 $('#sportSelect').on('change', function () {
                     const selectedSport = $(this).find(':selected').data('nama');
-                    if (selectedSport === 'PUBG MOBILE') {
-                        $('#teamASelect').val(selprodiId).trigger('change');
-                        $('#teamBSelect').val(selprodiId).trigger('change');
-                        $('.team-b-container').hide();
-                        $('.team-a-container label').text('Format Pertandingan');
-                    } else {
-                        $('.team-b-container').show();
-                        $('.team-a-container label').text('Tim A (Prodi)');
-                    }
+                    // PUBG Mobile logic removed.
+                    $('.team-b-container').show();
+                    $('.team-a-container label').text('Tim A (Prodi)');
                 });
             });
             

@@ -420,31 +420,6 @@ class RectorCup2024Seeder extends Seeder
         $this->seedMatches($tournament, $sport, $bracketDay2Matches, 'Babak Gugur', 'Lapangan Futsal', false);
     }
 
-    private function seedPubgm(): void
-    {
-        $sport = $this->sport('PUBG MOBILE');
-        $tournament = $this->upsertTournament([
-            'name' => 'Rector Cup PUBGM 2024',
-            'sport_id' => $sport->id,
-            'year' => 2024,
-            'type' => 'group_stage',
-            'external_score_url' => 'https://docs.google.com/spreadsheets/d/1-SaHP6g9e9cJ5MmuH6c-FSX0-zTGpW5mqv2G-K-GUY0/edit?gid=1229337401#gid=1229337401',
-            'is_active' => false,
-            'start_date' => '2024-09-30',
-            'end_date' => '2024-09-30',
-        ]);
-
-        $participants = [
-            'Informatika', 'Sistem Informasi', 'Manajemen', 'Akuntansi',
-            'Kedokteran', 'Biologi', 'Arsitektur', 'Desain Produk', 'Filsafat Keilahian', 'Pendidikan Bahasa Inggris',
-        ];
-
-        $teamIds = [];
-        foreach ($participants as $name) {
-            $teamIds[] = $this->team($name)->id;
-        }
-        $tournament->teams()->syncWithoutDetaching(array_values(array_unique($teamIds)));
-    }
 
     private function seedBilliard(): void
     {
@@ -484,8 +459,7 @@ class RectorCup2024Seeder extends Seeder
         $this->seedFutsal();
         $this->command->info('  ✓ Futsal (Group Stage + Bracket)');
 
-        $this->seedPubgm();
-        $this->command->info('  ✓ PUBG Mobile (All-in-one)');
+
 
         $this->seedBilliard();
         $this->command->info('  ✓ Billiard');

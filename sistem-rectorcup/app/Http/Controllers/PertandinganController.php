@@ -37,7 +37,7 @@ class PertandinganController extends Controller
 
         $sports = Sport::all();
         
-        // Get active tournaments with their data
+        // Get active tournaments with their data (hanya turnamen yang masih berlangsung)
         $tournaments = Tournament::with(['sport', 'teams', 'pertandingans' => function($q) {
                 $q->whereIn('status', ['live', 'finished'])
                   ->orderBy('round', 'desc')
@@ -45,6 +45,9 @@ class PertandinganController extends Controller
             }])
             ->where('year', date('Y'))
             ->where('is_active', true)
+            ->whereHas('pertandingans', function($q) {
+                $q->whereIn('status', ['live', 'scheduled']);
+            })
             ->orderBy('created_at', 'desc')
             ->take(3)
             ->get();
@@ -104,6 +107,12 @@ class PertandinganController extends Controller
         Pertandingan::whereIn('id', $request->match_ids)
             ->where('status', 'scheduled')
             ->update(['status' => 'live']);
+
+        // Pastikan turnamen terkait ditandai aktif jika ada match yang diubah ke live
+        $tournamentIds = $matches->pluck('tournament_id')->filter()->unique();
+        if ($tournamentIds->isNotEmpty()) {
+            Tournament::whereIn('id', $tournamentIds)->update(['is_active' => true]);
+        }
         
         // Broadcast status update untuk setiap match
         foreach ($matches as $match) {
@@ -269,6 +278,10 @@ class PertandinganController extends Controller
             'game_screenshots.*'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
+        if ($request->status === 'finished' && $request->score_a == $request->score_b) {
+            return back()->with('error', 'Tidak bisa menyelesaikan pertandingan dengan skor seimbang. Harus ada pemenang untuk melanjutkan bracket.');
+        }
+
         $updateData = [
             'score_a' => $request->score_a,
             'score_b' => $request->score_b,
@@ -296,10 +309,13 @@ class PertandinganController extends Controller
         $this->handleGameScreenshots($request, $pertandingan, $localFolder, $cleanSportName, $cleanDate);
 
         // Logika Pengarsipan Otomatis & Auto-Advance Bracket
-        if ($request->status == 'finished' && $pertandingan->status != 'finished') {
+        if ($request->status == 'finished') {
             $this->handleMatchFinished($request, $pertandingan, $updateData);
         } else {
             $pertandingan->update($updateData);
+            if ($pertandingan->tournament_id && in_array($request->status, ['live', 'scheduled'])) {
+                Tournament::where('id', $pertandingan->tournament_id)->update(['is_active' => true]);
+            }
         }
 
         // Refresh model to get latest data
@@ -342,7 +358,7 @@ class PertandinganController extends Controller
 
     private function handleGameScreenshots(Request $request, Pertandingan $pertandingan, string $localFolder, string $cleanSportName, string $cleanDate): void
     {
-        if ($pertandingan->format_tanding === 'BO3') {
+        if ($request->format_tanding === 'BO3' || $pertandingan->format_tanding === 'BO3') {
             for ($gameNum = 1; $gameNum <= 3; $gameNum++) {
                 if ($request->hasFile("game_screenshots.$gameNum")) {
                     $game = $pertandingan->games()->firstOrCreate(
@@ -370,30 +386,41 @@ class PertandinganController extends Controller
 
         $pertandingan->update($updateData);
 
-        if ($pertandingan->tournament_id && $pertandingan->next_match_id && isset($updateData['winner_id'])) {
-            $nextMatch = Pertandingan::find($pertandingan->next_match_id);
-            $loserId = ($updateData['winner_id'] == $pertandingan->team_a_id) ? $pertandingan->team_b_id : $pertandingan->team_a_id;
+        if ($pertandingan->tournament_id) {
+            if ($pertandingan->next_match_id && isset($updateData['winner_id'])) {
+                $nextMatch = Pertandingan::find($pertandingan->next_match_id);
+                $loserId = ($updateData['winner_id'] == $pertandingan->team_a_id) ? $pertandingan->team_b_id : $pertandingan->team_a_id;
 
-            if ($nextMatch) {
-                if ($pertandingan->match_number % 2 != 0) {
-                    $nextMatch->update(['team_a_id' => $updateData['winner_id']]);
-                } else {
-                    $nextMatch->update(['team_b_id' => $updateData['winner_id']]);
+                if ($nextMatch) {
+                    if ($pertandingan->match_number % 2 != 0) {
+                        $nextMatch->update(['team_a_id' => $updateData['winner_id']]);
+                    } else {
+                        $nextMatch->update(['team_b_id' => $updateData['winner_id']]);
+                    }
+                }
+
+                if ($pertandingan->babak == 'Semi Final') {
+                    $thirdPlaceMatch = Pertandingan::where('tournament_id', $pertandingan->tournament_id)
+                        ->where('babak', 'Perebutan Juara 3')
+                        ->first();
+
+                    if ($thirdPlaceMatch) {
+                        if ($pertandingan->match_number % 2 != 0) {
+                            $thirdPlaceMatch->update(['team_a_id' => $loserId]);
+                        } else {
+                            $thirdPlaceMatch->update(['team_b_id' => $loserId]);
+                        }
+                    }
                 }
             }
 
-            if ($pertandingan->babak == 'Semi Final') {
-                $thirdPlaceMatch = Pertandingan::where('tournament_id', $pertandingan->tournament_id)
-                    ->where('babak', 'Perebutan Juara 3')
-                    ->first();
+            // Cek apakah seluruh pertandingan dalam turnamen ini sudah selesai
+            $hasRemainingMatches = Pertandingan::where('tournament_id', $pertandingan->tournament_id)
+                ->where('status', '!=', 'finished')
+                ->exists();
 
-                if ($thirdPlaceMatch) {
-                    if ($pertandingan->match_number % 2 != 0) {
-                        $thirdPlaceMatch->update(['team_a_id' => $loserId]);
-                    } else {
-                        $thirdPlaceMatch->update(['team_b_id' => $loserId]);
-                    }
-                }
+            if (!$hasRemainingMatches) {
+                Tournament::where('id', $pertandingan->tournament_id)->update(['is_active' => false]);
             }
         }
     }

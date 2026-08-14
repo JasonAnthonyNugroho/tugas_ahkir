@@ -66,7 +66,7 @@
                                class="bb-input" placeholder="https://docs.google.com/spreadsheets/d/...">
                         <small class="text-muted d-block mt-1">
                             <i class="bi bi-info-circle mr-1"></i>
-                            Untuk cabang dengan poin manual seperti <strong>Catur</strong> atau <strong>PUBG Mobile</strong>.
+                            Untuk cabang dengan poin manual seperti <strong>Catur</strong>.
                             Jika diisi, halaman riwayat akan menampilkan tombol link ke sheet (bukan podium juara).
                             Pastikan sheet sudah di-share <em>"Anyone with the link"</em>.
                         </small>
