@@ -65,7 +65,7 @@ class DatabaseSeeder extends Seeder
             'prodi' => 'Semua Prodi',
         ]);
 
-        // Generate 2 tim (A & B) per prodi
+        // Generate 3 tim (A, B, C) per prodi
         foreach ($prodis as $prodi) {
             Team::firstOrCreate(
                 ['name' => $prodi . ' A'],
@@ -73,6 +73,10 @@ class DatabaseSeeder extends Seeder
             );
             Team::firstOrCreate(
                 ['name' => $prodi . ' B'],
+                ['prodi' => $prodi]
+            );
+            Team::firstOrCreate(
+                ['name' => $prodi . ' C'],
                 ['prodi' => $prodi]
             );
         }
